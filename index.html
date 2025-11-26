@@ -5,243 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Yatzy Ultimate</title>
     <style>
+        /* --- CSS STYLES --- */
         :root {
-            --bg: #121212;
-            --surface: #1e1e1e;
-            --text: #e0e0e0;
-            --text-dim: #a0a0a0;
-            --accent: #4caf50;
-            --accent-hover: #43a047;
-            --border: #333;
-            --highlight: #2c3e50;
-            --shadow-color: rgba(0,0,0,0.5);
-            --danger: #f44336;
+            --bg: #121212; --surface: #1e1e1e; --text: #e0e0e0; --text-dim: #a0a0a0;
+            --accent: #4caf50; --accent-hover: #43a047; --border: #333;
+            --highlight: #2c3e50; --shadow-color: rgba(0,0,0,0.5); --danger: #f44336;
         }
-
         [data-theme="light"] {
-            --bg: #f5f5f5;
-            --surface: #ffffff;
-            --text: #212121;
-            --text-dim: #666;
-            --accent: #2196F3;
-            --accent-hover: #1976D2;
-            --border: #ddd;
-            --highlight: #e3f2fd;
-            --shadow-color: rgba(0,0,0,0.1);
+            --bg: #f5f5f5; --surface: #ffffff; --text: #212121; --text-dim: #666;
+            --accent: #2196F3; --accent-hover: #1976D2; --border: #ddd;
+            --highlight: #e3f2fd; --shadow-color: rgba(0,0,0,0.1);
         }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: background 0.3s, color 0.3s;
+            background-color: var(--bg); color: var(--text); margin: 0; padding: 15px;
+            display: flex; flex-direction: column; align-items: center; transition: background 0.3s, color 0.3s;
         }
-
-        header {
-            width: 100%;
-            max-width: 800px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
+        header { width: 100%; max-width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
         
-        .status-dot {
-            width: 10px; height: 10px;
-            background-color: #f44336;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        .status-dot.online {
-            background-color: #4caf50;
-            box-shadow: 0 0 0 0 rgba(76, 175, 80, 1);
-            animation: pulse-green 2s infinite;
-        }
-
-        @keyframes pulse-green {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-        }
+        /* Status Dot */
+        .status-dot { width: 10px; height: 10px; background-color: #f44336; border-radius: 50%; display: inline-block; }
+        .status-dot.online { background-color: #4caf50; box-shadow: 0 0 0 0 rgba(76, 175, 80, 1); animation: pulse-green 2s infinite; }
+        @keyframes pulse-green { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
 
         .header-actions { display: flex; gap: 10px; }
-
-        .icon-btn {
-            background: none; border: 1px solid var(--border);
-            color: var(--text); padding: 5px 10px; border-radius: 8px;
-            cursor: pointer; font-size: 1.2rem;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        .controls-area {
-            background: var(--surface);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
-            max-width: 600px;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 6px var(--shadow-color);
-        }
-
-        button {
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.9rem;
-            transition: transform 0.1s, background 0.2s;
-        }
+        .icon-btn { background: none; border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+        
+        .controls-area { background: var(--surface); padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 600px; border: 1px solid var(--border); }
+        button { background-color: var(--accent); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: transform 0.1s; }
         button:active { transform: scale(0.96); }
         button.secondary { background-color: #555; }
         button.danger { background-color: #d32f2f; }
+        input[type="text"], input[type="password"] { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); flex-grow: 1; min-width: 120px; }
 
-        input[type="text"], input[type="password"] {
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--bg);
-            color: var(--text);
-            flex-grow: 1;
-            min-width: 120px;
-        }
-
-        .table-wrapper {
-            width: 100%;
-            max-width: 900px;
-            overflow-x: auto;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            box-shadow: 0 4px 10px var(--shadow-color);
-            position: relative;
-        }
-
+        .table-wrapper { width: 100%; max-width: 900px; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); position: relative; }
         table { border-collapse: collapse; min-width: 100%; }
-
-        th, td {
-            padding: 8px;
-            text-align: center;
-            border: 1px solid var(--border);
-            white-space: nowrap;
-        }
-
-        th {
-            background-color: var(--surface);
-            position: sticky;
-            top: 0;
-            z-index: 20;
-            cursor: pointer;
-            user-select: none;
-        }
+        th, td { padding: 8px; text-align: center; border: 1px solid var(--border); white-space: nowrap; }
+        th { background-color: var(--surface); position: sticky; top: 0; z-index: 20; cursor: pointer; user-select: none; }
         th.active-player, td.active-col { background-color: var(--highlight) !important; }
-
-        .category-col {
-            position: sticky;
-            left: 0;
-            background-color: var(--surface);
-            z-index: 30;
-            text-align: left;
-            font-weight: bold;
-            width: 130px;
-            border-right: 2px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
+        .category-col { position: sticky; left: 0; background-color: var(--surface); z-index: 30; text-align: left; font-weight: bold; width: 130px; border-right: 2px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
         .table-wrapper.scrolled .category-col { box-shadow: 2px 0 5px var(--shadow-color); }
-
-        .help-icon {
-            font-size: 0.8em;
-            color: var(--text-dim);
-            cursor: help;
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            width: 18px; height: 18px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 5px;
-        }
-
+        .help-icon { font-size: 0.8em; color: var(--text-dim); cursor: help; border: 1px solid var(--border); border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; margin-left: 5px; }
         .subtotal-row { background-color: rgba(255, 255, 255, 0.05); font-weight: bold; color: var(--text-dim); }
         .total-row { background-color: var(--accent); color: white; font-weight: bold; font-size: 1.1em; }
-
-        input.score-input {
-            width: 50px;
-            background: transparent;
-            border: none;
-            color: var(--text);
-            text-align: center;
-            font-size: 1.1em;
-            font-weight: 500;
-            padding: 5px 0;
-        }
+        
+        input.score-input { width: 50px; background: transparent; border: none; color: var(--text); text-align: center; font-size: 1.1em; font-weight: 500; padding: 5px 0; }
         input.score-input:focus { background: rgba(255,255,255,0.1); outline: none; border-radius: 4px; }
-        input.invalid-shake {
-            color: #f44336; border-bottom: 2px solid #f44336;
-            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-        }
+        input.invalid-shake { color: #f44336; border-bottom: 2px solid #f44336; animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
-        .modal-backdrop {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: none; justify-content: center; align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(3px);
-        }
-        .modal {
-            background: var(--surface);
-            padding: 25px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
-            border: 1px solid var(--border);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            text-align: center;
-        }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(3px); }
+        .modal { background: var(--surface); padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; }
         .rule-desc { text-align: left; line-height: 1.5; margin: 15px 0; }
-
         .history-section { margin-top: 30px; width: 100%; max-width: 600px; }
-        .history-card {
-            background: var(--surface);
-            padding: 10px 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.9rem;
-        }
-
+        .history-card { background: var(--surface); padding: 10px 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 0.9rem; }
         #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
         
-        #error-banner {
-            display: none;
-            background: #f44336; color: white; padding: 10px;
-            text-align: center; width: 100%; position: fixed; top: 0; left: 0; z-index: 10000;
+        /* DEBUG LOG */
+        #debug-console {
+            width: 100%; background: #000; color: #00ff00; font-family: monospace; font-size: 10px;
+            padding: 10px; margin-top: 20px; border-top: 1px solid #333; max-height: 100px; overflow-y: auto;
+            display: block; /* Force visible for now */
         }
+        .log-err { color: #ff4444; }
+        .log-ok { color: #44ff44; }
     </style>
 </head>
 <body>
 
-    <div id="error-banner">⚠️ Error: Could not connect to Firebase. Check your internet or configuration.</div>
     <canvas id="confetti"></canvas>
 
     <header>
@@ -260,11 +92,13 @@
         <button class="danger" onclick="archiveAndReset()">🏆 Finish</button>
     </div>
 
+    <div class="room-info" style="text-align:center; margin-bottom:10px; color:#888;">
+        Room ID: <strong id="roomIdDisplay">Loading...</strong>
+    </div>
+
     <div class="table-wrapper" id="tableWrapper">
         <table id="scoreTable">
-            <thead>
-                <tr id="headerRow"><th class="category-col">Category</th></tr>
-            </thead>
+            <thead><tr id="headerRow"><th class="category-col">Category</th></tr></thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
@@ -273,6 +107,9 @@
         <h3>📜 History</h3>
         <div id="historyList"></div>
     </div>
+
+    <!-- DEBUG CONSOLE FOR TROUBLESHOOTING -->
+    <div id="debug-console">Initializing System...</div>
 
     <!-- Modals -->
     <div id="ruleModal" class="modal-backdrop" onclick="if(event.target === this) this.style.display='none'">
@@ -306,215 +143,221 @@
         </div>
     </div>
 
-<!-- 
-    CRITICAL FIX: Using Firebase v10.13.1 (Stable). 
-    v12.6.0 does not exist yet and caused the crash. 
--->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set, update, push } 
-           from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
-
-    // --- ERROR HANDLING ---
-    window.onerror = function() {
-        document.getElementById('error-banner').style.display = 'block';
-    };
-
-    // --- CONFIGURATION ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyDu86vB2-zePebM5oL_onW5E5Aiszgzh84",
-        authDomain: "yatzy-eb87c.firebaseapp.com",
-        databaseURL: "https://yatzy-eb87c-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "yatzy-eb87c",
-        storageBucket: "yatzy-eb87c.firebasestorage.app",
-        messagingSenderId: "720938944178",
-        appId: "1:720938944178:web:de183e0ca6a116b915ebab",
-        measurementId: "G-6FCGWX4R4L"
-    };
-
-    let app, db;
-    try {
-        app = initializeApp(firebaseConfig);
-        db = getDatabase(app);
-    } catch (e) {
-        console.error("Firebase Init Error:", e);
-        document.getElementById('error-banner').innerText = "⚠️ Config Error: " + e.message;
-        document.getElementById('error-banner').style.display = 'block';
-    }
-
-    // --- GAME RULES ---
-    const RULES = {
-        ones: 5, twos: 10, threes: 15, fours: 20, fives: 25, sixes: 30,
-        pair: 12, twoPair: 22, threeKind: 30, fourKind: 30,
-        smallStr: 30, largeStr: 40, fullHouse: 28, chance: 30, yatzy: 50
-    };
-
-    const CATEGORIES = [
-        { id: 'ones', label: 'Ones', rule: 'Sum of ones. Max 5.' },
-        { id: 'twos', label: 'Twos', rule: 'Sum of twos. Max 10.' },
-        { id: 'threes', label: 'Threes', rule: 'Sum of threes. Max 15.' },
-        { id: 'fours', label: 'Fours', rule: 'Sum of fours. Max 20.' },
-        { id: 'fives', label: 'Fives', rule: 'Sum of fives. Max 25.' },
-        { id: 'sixes', label: 'Sixes', rule: 'Sum of sixes. Max 30.' },
-        { id: 'sum', label: 'Sum', type: 'calc' },
-        { id: 'bonus', label: 'Bonus', type: 'calc', rule: 'If Sum ≥ 63, score 50.' },
-        { id: 'pair', label: 'One Pair', rule: 'Sum of two same dice.' },
-        { id: 'twoPair', label: 'Two Pairs', rule: 'Sum of two different pairs.' },
-        { id: 'threeKind', label: '3 of a Kind', rule: 'Sum of three same dice.' },
-        { id: 'fourKind', label: '4 of a Kind', rule: 'Sum of four same dice.' },
-        { id: 'smallStr', label: 'Small Str.', rule: 'Sequence of 4. Score 15 (Std) or 30 (Classic).' },
-        { id: 'largeStr', label: 'Large Str.', rule: 'Sequence of 5. Score 20 (Std) or 40 (Classic).' },
-        { id: 'fullHouse', label: 'Full House', rule: '3 of one + 2 of another.' },
-        { id: 'chance', label: 'Chance', rule: 'Sum of all 5 dice.' },
-        { id: 'yatzy', label: 'Yatzy', rule: 'All 5 same. Must be 50 or 0.' },
-        { id: 'total', label: 'TOTAL', type: 'calc' }
-    ];
-
-    // --- STATE & ID GENERATION ---
-    // This logic MUST run to generate the ID
-    let gameId = window.location.hash.replace('#', '');
-    if (!gameId || gameId.length < 2) { 
-        gameId = Math.random().toString(36).substr(2, 6); 
-        window.location.hash = gameId; 
-    }
-    
-    let playerData = {};
-    let roomPin = null;
-    let isAuthorized = false;
-    let soundEnabled = true;
-
-    // --- SOUND ---
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const audioCtx = new AudioContext();
-    const Sound = {
-        playTone: (f, t, d) => {
-            if(!soundEnabled || audioCtx.state==='suspended') audioCtx.resume();
-            if(!soundEnabled) return;
-            const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-            o.frequency.value=f; o.type=t; o.connect(g); g.connect(audioCtx.destination);
-            o.start(); g.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime+d);
-            o.stop(audioCtx.currentTime+d);
-        },
-        tap:()=>Sound.playTone(600,'sine',0.1),
-        score:()=>{Sound.playTone(400,'sine',0.1);setTimeout(()=>Sound.playTone(600,'sine',0.2),100)},
-        yatzy:()=>{[523,659,783,1046,1568].forEach((f,i)=>setTimeout(()=>Sound.playTone(f,'triangle',0.15),i*80))},
-        error:()=>Sound.playTone(150,'sawtooth',0.3),
-        fanfare:()=>{[400,500,600,800].forEach((f,i)=>setTimeout(()=>Sound.playTone(f,'square',0.2),i*150))}
-    };
-
-    window.toggleSound = () => { soundEnabled=!soundEnabled; document.getElementById('soundBtn').innerText=soundEnabled?'🔊':'🔇'; };
-
-    // --- FIREBASE SYNC ---
-    const roomRef = ref(db, `games/${gameId}`);
-    onValue(roomRef, (snapshot) => {
-        const data = snapshot.val() || {};
-        playerData = data.current?.players || {};
-        roomPin = data.settings?.pin || null;
-        document.getElementById('lockBtn').innerText = roomPin ? '🔒' : '🔓';
-        document.getElementById('statusDot').classList.add('online');
-        renderTable();
-    });
-
-    onValue(ref(db, `games/${gameId}/history`), (snap) => renderHistory(snap.val()));
-
-    // --- ACTIONS ---
-    window.checkAuth = () => {
-        if (roomPin && !isAuthorized) { document.getElementById('pinModal').style.display='flex'; return false; }
-        return true;
-    };
-    window.verifyPin = () => {
-        if (document.getElementById('pinInput').value === String(roomPin)) {
-            isAuthorized=true; document.getElementById('pinModal').style.display='none'; Sound.score();
-        } else { Sound.error(); alert("Wrong PIN"); }
-    };
-    window.toggleLockModal = () => {
-        document.getElementById((!isAuthorized && roomPin) ? 'pinModal' : 'setPinModal').style.display='flex';
-    };
-    window.setRoomPin = () => {
-        const pin = document.getElementById('newPinInput').value;
-        if(pin.length<4) return alert("4 digits required");
-        set(ref(db, `games/${gameId}/settings/pin`), pin);
-        isAuthorized=true; document.getElementById('setPinModal').style.display='none'; Sound.score();
-    };
-    window.removeRoomPin = () => {
-        set(ref(db, `games/${gameId}/settings/pin`), null);
-        document.getElementById('setPinModal').style.display='none';
-    };
-
-    window.addPlayer = () => {
-        if(!window.checkAuth()) return;
-        const name = document.getElementById('playerName').value.trim();
-        if(!name) return;
-        Sound.tap();
-        update(ref(db, `games/${gameId}/current/players/p_${Date.now()}`), { name: name, scores: {} });
-        document.getElementById('playerName').value = '';
-    };
-
-    window.updateScore = (pid, cat, val) => {
-        if (!window.checkAuth()) { renderTable(); return; }
-        const num = Number(val);
-        
-        // Validation
-        let err = "";
-        if (val !== '') {
-            if (isNaN(num) || num < 0) err = "Positive numbers only";
-            else if (RULES[cat] && num > RULES[cat]) err = `Max is ${RULES[cat]}`;
-            else if (cat === 'yatzy' && num !== 0 && num !== 50) err = "50 or 0 only";
+    <!-- SCRIPT 1: GUARANTEED STARTUP (Runs immediately) -->
+    <script>
+        function log(msg, type="info") {
+            const c = document.getElementById('debug-console');
+            const line = document.createElement('div');
+            line.textContent = `> ${msg}`;
+            if(type==='error') line.className='log-err';
+            else if(type==='success') line.className='log-ok';
+            c.appendChild(line);
+            c.scrollTop = c.scrollHeight;
+            console.log(msg);
         }
 
-        if (err) {
-            Sound.error();
-            alert(err);
-            renderTable(); // Reset
-            return;
+        // 1. Generate ID Immediately (Fixes "Code not generating" issue)
+        try {
+            let hash = window.location.hash.replace('#', '');
+            if (!hash || hash.length < 2) {
+                hash = Math.random().toString(36).substr(2, 6);
+                window.location.hash = hash;
+                log("Generated New Room ID: " + hash);
+            } else {
+                log("Joined Existing Room: " + hash);
+            }
+            document.getElementById('roomIdDisplay').innerText = hash;
+            window.GAME_ID = hash; // Global var for module to pick up
+        } catch(e) {
+            log("CRITICAL ERROR: Could not generate ID. " + e.message, "error");
+        }
+    </script>
+
+    <!-- SCRIPT 2: FIREBASE MODULE (Loads from Cloud) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, update, push } 
+               from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        log("Firebase Modules Loaded. Initializing...");
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDu86vB2-zePebM5oL_onW5E5Aiszgzh84",
+            authDomain: "yatzy-eb87c.firebaseapp.com",
+            // CRITICAL: Using the region-specific URL you provided earlier
+            databaseURL: "https://yatzy-eb87c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "yatzy-eb87c",
+            storageBucket: "yatzy-eb87c.firebasestorage.app",
+            messagingSenderId: "720938944178",
+            appId: "1:720938944178:web:de183e0ca6a116b915ebab",
+            measurementId: "G-6FCGWX4R4L"
+        };
+
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+            log("Firebase Configured. Connecting...", "success");
+        } catch (e) {
+            log("CONFIG FAILED: " + e.message, "error");
         }
 
-        if (val !== '') { (cat==='yatzy' && num===50) ? (Sound.yatzy(), startConfetti()) : Sound.score(); }
+        // --- CONSTANTS ---
+        const RULES={ones:5,twos:10,threes:15,fours:20,fives:25,sixes:30,pair:12,twoPair:22,threeKind:30,fourKind:30,smallStr:30,largeStr:40,fullHouse:28,chance:30,yatzy:50};
+        const CATEGORIES=[
+            {id:'ones',label:'Ones',rule:'Sum of ones. Max 5.'},
+            {id:'twos',label:'Twos',rule:'Sum of twos. Max 10.'},
+            {id:'threes',label:'Threes',rule:'Sum of threes. Max 15.'},
+            {id:'fours',label:'Fours',rule:'Sum of fours. Max 20.'},
+            {id:'fives',label:'Fives',rule:'Sum of fives. Max 25.'},
+            {id:'sixes',label:'Sixes',rule:'Sum of sixes. Max 30.'},
+            {id:'sum',label:'Sum',type:'calc'},
+            {id:'bonus',label:'Bonus',type:'calc',rule:'If Sum ≥ 63, score 50.'},
+            {id:'pair',label:'One Pair',rule:'Sum of two same dice.'},
+            {id:'twoPair',label:'Two Pairs',rule:'Sum of two different pairs.'},
+            {id:'threeKind',label:'3 of a Kind',rule:'Sum of three same dice.'},
+            {id:'fourKind',label:'4 of a Kind',rule:'Sum of four same dice.'},
+            {id:'smallStr',label:'Small Str.',rule:'Seq of 4. Score 15 or 30.'},
+            {id:'largeStr',label:'Large Str.',rule:'Seq of 5. Score 20 or 40.'},
+            {id:'fullHouse',label:'Full House',rule:'3 of one + 2 of another.'},
+            {id:'chance',label:'Chance',rule:'Sum of all 5 dice.'},
+            {id:'yatzy',label:'Yatzy',rule:'All 5 same. 50 or 0.'},
+            {id:'total',label:'TOTAL',type:'calc'}
+        ];
+
+        // --- STATE ---
+        let playerData = {};
+        let roomPin = null;
+        let isAuthorized = false;
+        let soundEnabled = true;
+        const gameId = window.GAME_ID; // Pick up ID from Script 1
+
+        // --- DB LISTENERS ---
+        try {
+            const roomRef = ref(db, `games/${gameId}`);
+            onValue(roomRef, (snapshot) => {
+                log("Data Received from Cloud", "success");
+                const data = snapshot.val() || {};
+                playerData = data.current?.players || {};
+                roomPin = data.settings?.pin || null;
+                
+                document.getElementById('lockBtn').innerText = roomPin ? '🔒' : '🔓';
+                document.getElementById('statusDot').classList.add('online');
+                renderTable();
+            }, (error) => {
+                log("DB READ ERROR: " + error.message, "error");
+            });
+
+            onValue(ref(db, `games/${gameId}/history`), (snap) => renderHistory(snap.val()));
+        } catch(e) {
+            log("LISTENER ERROR: " + e.message, "error");
+        }
+
+        // --- GLOBAL EXPORTS (Connect buttons to module functions) ---
+        window.toggleSound = () => { soundEnabled=!soundEnabled; document.getElementById('soundBtn').innerText=soundEnabled?'🔊':'🔇'; };
+        window.checkAuth = () => { if(roomPin && !isAuthorized){document.getElementById('pinModal').style.display='flex';return false;} return true; };
         
-        const path = `games/${gameId}/current/players/${pid}/scores/${cat}`;
-        set(ref(db, path), val === '' ? null : num);
-    };
-
-    window.archiveAndReset = () => {
-        if (!window.checkAuth()) return;
+        window.verifyPin = () => {
+            if(document.getElementById('pinInput').value === String(roomPin)) {
+                isAuthorized=true; document.getElementById('pinModal').style.display='none'; Sound.score();
+            } else { Sound.error(); alert("Wrong PIN"); }
+        };
+        window.toggleLockModal = () => document.getElementById((!isAuthorized && roomPin)?'pinModal':'setPinModal').style.display='flex';
         
-        const pList = playerData ? Object.values(playerData) : [];
-        if (pList.length === 0) return alert("No players!");
+        window.setRoomPin = () => {
+            const p = document.getElementById('newPinInput').value;
+            if(p.length<4) return alert("4 digits");
+            set(ref(db, `games/${gameId}/settings/pin`), p); isAuthorized=true; 
+            document.getElementById('setPinModal').style.display='none';
+        };
+        window.removeRoomPin = () => { set(ref(db, `games/${gameId}/settings/pin`), null); document.getElementById('setPinModal').style.display='none'; };
 
-        let winner="None", max=-1, results=[];
-        pList.forEach(p => {
-            let s = calculateTotal(p.scores||{});
-            results.push({name:p.name, score:s});
-            if(s>max) { max=s; winner=p.name; }
-        });
+        window.addPlayer = () => {
+            if(!window.checkAuth()) return;
+            const name = document.getElementById('playerName').value.trim();
+            if(!name) return;
+            Sound.tap();
+            update(ref(db, `games/${gameId}/current/players/p_${Date.now()}`), { name: name, scores: {} });
+            document.getElementById('playerName').value = '';
+        };
 
-        if(!confirm(`Finish game?\nWinner: ${winner} (${max})`)) return;
+        window.updateScore = (pid, cat, val) => {
+            if(!window.checkAuth()) { renderTable(); return; }
+            const num = Number(val);
+            let err = "";
+            if(val!=='') {
+                if(isNaN(num)||num<0) err="Positive only";
+                else if(RULES[cat] && num>RULES[cat]) err=`Max is ${RULES[cat]}`;
+                else if(cat==='yatzy' && num!==0 && num!==50) err="50 or 0";
+            }
+            if(err) {
+                Sound.error(); alert(err); 
+                const el = document.querySelector(`input[data-pid="${pid}"][data-cat="${cat}"]`);
+                if(el) { el.classList.add('invalid-shake'); setTimeout(()=>el.classList.remove('invalid-shake'),500); }
+                renderTable(); return;
+            }
+            if(val!=='') { (cat==='yatzy'&&num===50)?(Sound.yatzy(),startConfetti()):Sound.score(); }
+            set(ref(db, `games/${gameId}/current/players/${pid}/scores/${cat}`), val===''?null:num);
+        };
 
-        try { Sound.fanfare(); startConfetti(); } catch(e){}
-        
-        push(ref(db, `games/${gameId}/history`), {
-            date: new Date().toISOString(), winner: winner, results: results
-        });
+        window.archiveAndReset = () => {
+            if(!window.checkAuth()) return;
+            const pList = playerData ? Object.values(playerData) : [];
+            if(!pList.length) return alert("No players");
+            
+            let winner="None", max=-1, results=[];
+            pList.forEach(p => {
+                let s = calculateTotal(p.scores||{});
+                results.push({name:p.name, score:s});
+                if(s>max) { max=s; winner=p.name; }
+            });
 
-        const updates = {};
-        Object.keys(playerData).forEach(pid => updates[`players/${pid}/scores`] = null);
-        update(ref(db, `games/${gameId}/current`), updates);
+            if(!confirm(`Finish game?\nWinner: ${winner} (${max})`)) return;
+            try{Sound.fanfare();startConfetti();}catch(e){}
+            
+            push(ref(db, `games/${gameId}/history`), { date: new Date().toISOString(), winner: winner, results: results });
+            
+            const updates={};
+            Object.keys(playerData).forEach(pid => updates[`players/${pid}/scores`] = null);
+            update(ref(db, `games/${gameId}/current`), updates);
+            setTimeout(()=>alert(`🏆 WINNER: ${winner} 🏆`), 300);
+        };
 
-        setTimeout(() => alert(`🏆 WINNER: ${winner} 🏆`), 300);
-    };
+        // --- RENDER ---
+        function renderTable() {
+            const hRow = document.getElementById('headerRow');
+            const tbody = document.getElementById('tableBody');
+            
+            // Keep category header, clear rest
+            while(hRow.children.length > 1) hRow.removeChild(hRow.lastChild);
+            
+            const pids = Object.keys(playerData).sort();
+            pids.forEach(pid => {
+                const th = document.createElement('th');
+                th.innerText = playerData[pid].name;
+                hRow.appendChild(th);
+            });
 
-    // --- RENDER ---
-    function renderTable() {
-        const hRow = document.getElementById('headerRow');
-        const tbody = document.getElementById('tableBody');
-        hRow.innerHTML = '<th class="category-col">Category</th>';
-        const pids = Object.keys(playerData).sort();
+            tbody.innerHTML = '';
+            CATEGORIES.forEach(cat => {
+                const tr = document.createElement('tr');
+                if(cat.id.includes('sum')||cat.id.includes('bonus')) tr.className='subtotal-row';
+                if(cat.id==='total') tr.className='total-row';
 
-        pids.forEach(pid => {
-            const th = document.createElement('th');
-            th.innerText = playerData[pid].name;
-            hRow.appendChild(th);
-        });
+                const tdLabel = document.createElement('td');
+                tdLabel.className='category-col';
+                tdLabel.innerHTML=`<span>${cat.label}</span>`;
+                if(cat.rule) {
+                    const i = document.createElement('span'); i.className='help-icon'; i.innerText='?';
+                    i.onclick=()=>window.showRule(cat.label, cat.rule); tdLabel.appendChild(i);
+                }
+                tr.appendChild(tdLabel);
 
-        tbody.innerHTML = '';
-        CATEGORIES.forEach(cat 
+                pids.forEach(pid => {
+                    const td = document.createElement('td');
+                    const scores = playerData[pid].scores || {};
+                    if(cat.type==='calc') {
+                        td.innerText = calculateField(cat.id, scores);
+                    } else {
+                        const val = (scores[cat.id]!==undefined) ? scores[cat.id] : '';
+  
