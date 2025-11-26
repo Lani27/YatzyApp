@@ -56,6 +56,7 @@
 
         button:active { transform: scale(0.98); }
         button.secondary { background-color: #555; }
+        button.warning { background-color: #ff9800; color: #000; }
 
         input[type="text"] {
             padding: 12px;
@@ -119,9 +120,9 @@
         }
         input.score-input:focus { background: #444; outline: none; }
 
-        .status-bar { margin-top: 15px; font-size: 0.8em; color: #888; text-align: center; }
-        .connected { color: #4caf50; }
-        .offline { color: #ff9800; }
+        .status-bar { margin-top: 20px; font-size: 0.8em; color: #888; text-align: center; padding: 10px; background: #222; border-radius: 8px; width: 100%; max-width: 400px; }
+        .connected { color: #4caf50; font-weight: bold; }
+        .waiting { color: #ff9800; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -146,21 +147,32 @@
     </div>
 
     <div class="status-bar">
-        Room ID: <strong id="roomIdDisplay">Loading...</strong><br>
-        <span id="networkStatus" class="offline">● Local Mode (Connecting...)</span>
+        Room: <strong id="roomIdDisplay">...</strong><br>
+        Status: <span id="networkStatus" class="waiting">Connecting...</span> <br>
+        <div style="margin-top: 5px;">
+            Active Peers: <span id="peerCount">0</span>
+        </div>
+        <button onclick="window.location.reload()" style="margin-top:10px; padding: 5px 10px; font-size: 0.8rem; background: #444;"> Force Reconnect </button>
     </div>
 
 <script>
-    // --- 1. IMMEDIATE SETUP (Runs before network) ---
+    // --- 1. SETUP ---
     
-    // Get or Create Game ID Immediately so UI doesn't hang
-    let gameId = window.location.hash.replace('#', '');
-    if (!gameId || gameId.length < 2) {
-        gameId = Math.random().toString(36).substr(2, 6);
-        window.location.hash = gameId;
-    }
-    document.getElementById('roomIdDisplay').innerText = gameId;
+    // Aggressive Peer List: We connect to ALL of them to ensure we find each other
+    const peers = [
+        'https://gun-manhattan.herokuapp.com/gun',
+        'https://gun-eu.herokuapp.com/gun',
+        'https://gun-us.herokuapp.com/gun',
+        'https://gun-amsterdam.herokuapp.com/gun'
+    ];
 
+    // Initialize Gun
+    const gun = Gun({ 
+        peers: peers,
+        localStorage: true // Store data locally just in case
+    });
+
+    // --- GAME CONSTANTS ---
     const categories = [
         { id: 'ones', label: 'Ones' },
         { id: 'twos', label: 'Twos' },
@@ -183,45 +195,65 @@
     ];
 
     let playerData = {}; 
+    let gameId = window.location.hash.replace('#', '');
 
-    // --- 2. NETWORK SETUP ---
+    // Ensure we have a Game ID
+    if (!gameId || gameId.length < 2) {
+        gameId = Math.random().toString(36).substr(2, 6);
+        window.location.hash = gameId;
+    }
+    document.getElementById('roomIdDisplay').innerText = gameId;
 
-    const peers = [
-        'https://gun-manhattan.herokuapp.com/gun',
-        'https://gun-eu.herokuapp.com/gun',
-        'https://gun.glitch.me/gun'
-    ];
+    // Connect to specific Room
+    const gameRef = gun.get('yatzy_v6_multi').get(gameId);
 
-    // Initialize Gun (safe mode)
-    let gun;
-    try {
-        gun = Gun({ peers: peers });
-        // Connect to specific room
-        const gameRef = gun.get('yatzy_v5_robust').get(gameId);
+    // --- 2. NETWORK HEALTH CHECK ---
+    
+    let peerCount = 0;
+    
+    // Use the Gun 'hi' event to count active connections
+    gun.on('hi', peer => {
+        peerCount++;
+        updateStatus();
+    });
+    gun.on('bye', peer => {
+        peerCount = Math.max(0, peerCount - 1);
+        updateStatus();
+    });
 
-        // Listen for data updates
-        gameRef.map().on((data, key) => {
-            if(!data) return;
-            playerData[key] = { ...playerData[key], ...data };
-            renderTable();
-            
-            // If we get data, we know we are connected
-            const statusEl = document.getElementById('networkStatus');
-            statusEl.innerText = "● Live (Synced)";
+    function updateStatus() {
+        document.getElementById('peerCount').innerText = peerCount;
+        const statusEl = document.getElementById('networkStatus');
+        
+        if (peerCount > 0) {
+            statusEl.innerText = "● LIVE (Connected)";
             statusEl.className = "connected";
-        });
-    } catch (e) {
-        console.error("Gun failed to load:", e);
-        alert("Network error: You can play offline, but syncing might fail.");
+        } else {
+            statusEl.innerText = "○ Connecting...";
+            statusEl.className = "waiting";
+        }
     }
 
-    // --- 3. RENDER UI ---
+    // --- 3. SYNC LOGIC ---
+
+    // Listen for data
+    gameRef.map().on((data, key) => {
+        if(!data) return;
+        
+        // Merge incoming data with local data
+        playerData[key] = { ...playerData[key], ...data };
+        
+        // Render
+        renderTable();
+    });
+
+    // --- 4. RENDER UI ---
 
     function renderTable() {
         const headerRow = document.getElementById('headerRow');
         const tableBody = document.getElementById('tableBody');
         
-        // 1. Setup Header (Categories + Player Names)
+        // Header
         headerRow.innerHTML = '<th class="category-label">Category</th>';
         const playerIds = Object.keys(playerData).sort(); 
 
@@ -233,7 +265,7 @@
             headerRow.appendChild(th);
         });
 
-        // 2. Setup Rows
+        // Rows
         tableBody.innerHTML = '';
         categories.forEach(cat => {
             const tr = document.createElement('tr');
@@ -260,6 +292,7 @@
                     input.placeholder = '-';
                     input.value = (p[cat.id] !== undefined && p[cat.id] !== 0) ? p[cat.id] : '';
                     
+                    // Update Logic
                     input.onchange = (e) => updateScore(pid, cat.id, e.target.value);
                     td.appendChild(input);
                 }
@@ -269,7 +302,7 @@
         });
     }
 
-    // --- 4. LOGIC ---
+    // --- 5. GAME CALCULATIONS ---
 
     function calculateScore(p, type) {
         const upper = ['ones','twos','threes','fours','fives','sixes'];
@@ -292,46 +325,39 @@
         const name = nameInput.value.trim();
         if (!name) return alert("Please enter a name");
 
-        // Use a shorter, cleaner ID logic
+        // Unique ID
         const playerId = 'p_' + Date.now();
         
         const newPlayer = { name: name };
-        categories.forEach(c => {
-            if(c.type !== 'calc') newPlayer[c.id] = 0;
-        });
+        categories.forEach(c => { if(c.type !== 'calc') newPlayer[c.id] = 0; });
 
-        // Update LOCAL data immediately (so you see it instantly)
+        // Optimistic UI Update (Show immediately)
         playerData[playerId] = newPlayer;
         renderTable();
 
-        // Send to Network
-        if(gun) {
-            gun.get('yatzy_v5_robust').get(gameId).get(playerId).put(newPlayer);
-        }
-        
+        // Send to Server
+        gameRef.get(playerId).put(newPlayer);
         nameInput.value = '';
     }
 
     function updateScore(pid, cat, val) {
         if(val === '') val = 0;
         
-        // Update LOCAL data immediately
+        // Optimistic UI Update
         if(playerData[pid]) playerData[pid][cat] = Number(val);
         renderTable();
 
-        // Send to Network
-        if(gun) {
-            gun.get('yatzy_v5_robust').get(gameId).get(pid).get(cat).put(Number(val));
-        }
+        // Send to Server
+        gameRef.get(pid).get(cat).put(Number(val));
     }
 
     function copyLink() {
         navigator.clipboard.writeText(window.location.href).then(() => {
-            alert("Link copied! Share with friends.");
+            alert("Link copied! If friends can't connect, ask them to use Chrome or Safari.");
         });
     }
 
-    // Trigger initial render
+    // Render empty table on start
     renderTable();
 </script>
 
