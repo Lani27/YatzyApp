@@ -2,118 +2,293 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yatzy Live (Cloud)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Yatzy Ultimate</title>
     <style>
-        :root { --bg: #1a1a1a; --text: #e0e0e0; --accent: #2196F3; --border: #333; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background: var(--bg); 
-            color: var(--text); 
-            padding: 10px; 
-            display:flex; 
-            flex-direction:column; 
-            align-items:center; 
+        :root {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --text: #e0e0e0;
+            --text-dim: #a0a0a0;
+            --accent: #4caf50;
+            --accent-hover: #43a047;
+            --border: #333;
+            --highlight: #2c3e50;
+            --shadow-color: rgba(0,0,0,0.5);
+        }
+
+        [data-theme="light"] {
+            --bg: #f5f5f5;
+            --surface: #ffffff;
+            --text: #212121;
+            --text-dim: #666;
+            --accent: #2196F3;
+            --accent-hover: #1976D2;
+            --border: #ddd;
+            --highlight: #e3f2fd;
+            --shadow-color: rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
             margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: background 0.3s, color 0.3s;
         }
-        .controls { 
-            background: #252525; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-bottom: 20px; 
-            display:flex; 
-            gap:10px; 
-            flex-wrap:wrap; 
-            justify-content:center; 
-            width:100%; 
-            max-width:600px; 
-            border: 1px solid var(--border);
-        }
-        button { 
-            background: var(--accent); 
-            color: white; 
-            border: none; 
-            padding: 12px 20px; 
-            border-radius: 6px; 
-            font-weight: bold; 
-            font-size: 1rem; 
-            cursor: pointer;
-        }
-        button:active { transform: scale(0.98); }
-        input[type="text"] { 
-            padding: 12px; 
-            border-radius: 6px; 
-            border: 1px solid #555; 
-            background: #2a2a2a; 
-            color: white; 
-            flex-grow: 1; 
-            font-size: 1rem; 
-        }
-        .score-container { 
-            overflow-x: auto; 
-            width: 100%; 
+
+        /* --- HEADER & CONTROLS --- */
+        header {
+            width: 100%;
             max-width: 800px;
-            border-radius: 8px; 
-            background: #252525; 
-            border: 1px solid var(--border); 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
-        table { width: 100%; border-collapse: collapse; min-width: 300px; }
-        th, td { border: 1px solid #444; padding: 10px 5px; text-align: center; white-space: nowrap; }
-        .category-label { 
-            text-align: left; 
-            font-weight: bold; 
-            padding-left: 10px; 
-            background: #2a2a2a; 
-            position: sticky; 
-            left: 0; 
-            width: 110px; 
-            border-right: 2px solid #555; 
-            z-index: 10;
+
+        h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+        
+        .status-dot {
+            width: 10px; height: 10px;
+            background-color: #f44336;
+            border-radius: 50%;
+            display: inline-block;
         }
-        .subtotal-row { background: #2c3e50; font-weight: bold; }
-        .total-row { background: #1b5e20; font-weight: bold; }
-        input.score-input { 
-            width: 100%; 
-            min-width: 40px; 
-            background: transparent; 
-            border: none; 
-            color: white; 
-            text-align: center; 
-            font-size: 1.1em; 
+        .status-dot.online {
+            background-color: #4caf50;
+            box-shadow: 0 0 0 0 rgba(76, 175, 80, 1);
+            animation: pulse-green 2s infinite;
         }
-        .status-bar { margin-top: 15px; font-size: 0.9em; color: #888; text-align: center; }
-        .online { color: #4caf50; font-weight: bold; }
+
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+
+        .theme-toggle {
+            background: none; border: 1px solid var(--border);
+            color: var(--text); padding: 5px 10px; border-radius: 20px;
+            cursor: pointer; font-size: 1.2rem;
+        }
+
+        .controls-area {
+            background: var(--surface);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px var(--shadow-color);
+        }
+
+        button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: transform 0.1s, background 0.2s;
+        }
+        button:active { transform: scale(0.96); }
+        button:hover { background-color: var(--accent-hover); }
+        button.secondary { background-color: #555; }
+        button.danger { background-color: #d32f2f; }
+
+        input[type="text"] {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            flex-grow: 1;
+            min-width: 120px;
+        }
+
+        /* --- SCORE TABLE --- */
+        .table-wrapper {
+            width: 100%;
+            max-width: 900px;
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            box-shadow: 0 4px 10px var(--shadow-color);
+            position: relative;
+        }
+
+        table {
+            border-collapse: collapse;
+            min-width: 100%;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: var(--surface);
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        /* Player Highlight Styles */
+        th.active-player, td.active-col {
+            background-color: var(--highlight) !important;
+            position: relative;
+        }
+        th.active-player::after {
+            content: "▼";
+            display: block;
+            font-size: 0.7em;
+            color: var(--accent);
+        }
+
+        /* Sticky First Column */
+        .category-col {
+            position: sticky;
+            left: 0;
+            background-color: var(--surface);
+            z-index: 30;
+            text-align: left;
+            font-weight: bold;
+            width: 110px;
+            border-right: 2px solid var(--border);
+        }
+        
+        /* Add shadow to sticky col when scrolling */
+        .table-wrapper.scrolled .category-col {
+            box-shadow: 2px 0 5px var(--shadow-color);
+        }
+
+        .subtotal-row { background-color: rgba(255, 255, 255, 0.05); font-weight: bold; color: var(--text-dim); }
+        .total-row { background-color: var(--accent); color: white; font-weight: bold; font-size: 1.1em; }
+
+        input.score-input {
+            width: 50px;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: 500;
+            padding: 5px 0;
+        }
+        input.score-input:focus {
+            background: rgba(255,255,255,0.1);
+            outline: none;
+            border-radius: 4px;
+        }
+        /* Invalid input shake */
+        input.invalid { color: #f44336; text-decoration: line-through; }
+
+        /* --- HISTORY & INFO --- */
+        .history-section {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .history-card {
+            background: var(--surface);
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+        .winner-badge {
+            background: #ffd700; color: #000;
+            padding: 2px 6px; border-radius: 4px;
+            font-weight: bold; font-size: 0.8em;
+            margin-right: 5px;
+        }
+
+        .room-info {
+            margin-top: 10px;
+            font-size: 0.8em;
+            color: var(--text-dim);
+            text-align: center;
+        }
+
+        /* Confetti Canvas */
+        #confetti {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
 
-    <h1>🎲 Yatzy Cloud</h1>
+    <canvas id="confetti"></canvas>
 
-    <div class="controls">
-        <input type="text" id="playerName" placeholder="Enter Name">
-        <button onclick="addPlayer()">Add Player</button>
-        <button style="background:#555" onclick="copyLink()">Share Link</button>
+    <header>
+        <h1>
+            <span id="statusDot" class="status-dot"></span> 
+            Yatzy Ultimate
+        </h1>
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️</button>
+    </header>
+
+    <div class="controls-area">
+        <input type="text" id="playerName" placeholder="Enter Player Name">
+        <button onclick="addPlayer()">+ Add Player</button>
+        <button class="secondary" onclick="copyLink()">🔗 Share</button>
+        <button class="danger" onclick="archiveAndReset()">🏆 Finish & New Game</button>
     </div>
 
-    <div class="score-container">
+    <div class="table-wrapper" id="tableWrapper">
         <table id="scoreTable">
-            <thead><tr id="headerRow"><th class="category-label">Category</th></tr></thead>
-            <tbody id="tableBody"></tbody>
+            <thead>
+                <tr id="headerRow">
+                    <th class="category-col">Category</th>
+                    <!-- Players go here -->
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Scores go here -->
+            </tbody>
         </table>
     </div>
 
-    <div class="status-bar">
-        Room: <strong id="roomIdDisplay">...</strong><br>
-        Status: <span id="statusText">Connecting...</span>
+    <div class="room-info">
+        Room ID: <strong id="roomIdDisplay">...</strong>
     </div>
 
+    <div class="history-section">
+        <h3>📜 Game History</h3>
+        <div id="historyList"></div>
+    </div>
+
+<!-- Firebase & App Logic -->
 <script type="module">
-    // Import from Firebase SDK v12.6.0
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-    import { getDatabase, ref, onValue, set, update } 
+    import { getDatabase, ref, onValue, set, update, push, remove } 
            from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
-    // --- YOUR CONFIGURATION ---
+    // --- CONFIGURATION ---
     const firebaseConfig = {
         apiKey: "AIzaSyDu86vB2-zePebM5oL_onW5E5Aiszgzh84",
         authDomain: "yatzy-eb87c.firebaseapp.com",
@@ -124,113 +299,198 @@
         appId: "1:720938944178:web:de183e0ca6a116b915ebab",
         measurementId: "G-6FCGWX4R4L"
     };
-    // --------------------------
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Get Room ID
+    // --- STATE ---
     let gameId = window.location.hash.replace('#', '');
-    if (!gameId) { 
-        gameId = Math.random().toString(36).substr(2, 6); 
-        window.location.hash = gameId; 
-    }
+    if (!gameId) { gameId = Math.random().toString(36).substr(2, 6); window.location.hash = gameId; }
     document.getElementById('roomIdDisplay').innerText = gameId;
 
     let playerData = {};
+    let activePlayerId = null; // For highlighting
+
+    // Game Rules (Max possible scores per category for validation)
+    const RULES = {
+        ones: 5, twos: 10, threes: 15, fours: 20, fives: 25, sixes: 30,
+        pair: 12, twoPair: 24, threeKind: 30, fourKind: 30,
+        smallStr: 30, largeStr: 40, fullHouse: 25, chance: 30, yatzy: 50
+    };
+
     const categories = [
         { id: 'ones', label: 'Ones' }, { id: 'twos', label: 'Twos' }, { id: 'threes', label: 'Threes' },
         { id: 'fours', label: 'Fours' }, { id: 'fives', label: 'Fives' }, { id: 'sixes', label: 'Sixes' },
         { id: 'sum', label: 'Sum', type: 'calc' }, { id: 'bonus', label: 'Bonus', type: 'calc' },
-        { id: 'pair', label: 'One Pair' }, { id: 'twoPair', label: 'Two Pairs' }, { id: 'threeKind', label: '3 of a Kind' },
-        { id: 'fourKind', label: '4 of a Kind' }, { id: 'smallStr', label: 'Small Str.' }, { id: 'largeStr', label: 'Large Str.' },
-        { id: 'fullHouse', label: 'Full House' }, { id: 'chance', label: 'Chance' }, { id: 'yatzy', label: 'Yatzy' },
-        { id: 'total', label: 'TOTAL', type: 'calc' }
+        { id: 'pair', label: 'One Pair' }, { id: 'twoPair', label: 'Two Pairs' }, 
+        { id: 'threeKind', label: '3 of a Kind' }, { id: 'fourKind', label: '4 of a Kind' }, 
+        { id: 'smallStr', label: 'Sm. Straight' }, { id: 'largeStr', label: 'Lg. Straight' },
+        { id: 'fullHouse', label: 'Full House' }, { id: 'chance', label: 'Chance' }, 
+        { id: 'yatzy', label: 'Yatzy' }, { id: 'total', label: 'TOTAL', type: 'calc' }
     ];
 
-    // --- LISTENERS ---
-    const roomRef = ref(db, 'games/' + gameId);
+    // --- FIREBASE LISTENERS ---
     
-    // Listen for ANY change in this room
+    // 1. Listen for Game Data
+    const roomRef = ref(db, `games/${gameId}/current`);
     onValue(roomRef, (snapshot) => {
-        const data = snapshot.val();
-        document.getElementById('statusText').innerHTML = "<span class='online'>● Online & Synced</span>";
-        if (data) {
-            playerData = data;
-            renderTable();
-        } else {
-            // Room is empty, just render empty table
-            playerData = {};
-            renderTable();
-        }
+        const data = snapshot.val() || {};
+        playerData = data.players || {};
+        activePlayerId = data.activePlayer || null;
+        
+        document.getElementById('statusDot').classList.add('online');
+        renderTable();
+    });
+
+    // 2. Listen for History
+    const historyRef = ref(db, `games/${gameId}/history`);
+    onValue(historyRef, (snapshot) => {
+        renderHistory(snapshot.val());
     });
 
     // --- ACTIONS ---
+
     window.addPlayer = function() {
-        const name = document.getElementById('playerName').value;
-        if(!name) return alert("Enter a name first!");
-        
-        // Create a unique ID for this player
+        const name = document.getElementById('playerName').value.trim();
+        if(!name) return alert("Enter a name!");
         const pid = 'p_' + Date.now();
         
-        // Save initial state to Firebase
-        update(ref(db, `games/${gameId}/${pid}`), {
-            name: name,
-            ones:0, twos:0, threes:0, fours:0, fives:0, sixes:0
+        update(ref(db, `games/${gameId}/current/players/${pid}`), {
+            name: name, scores: {}
         });
         document.getElementById('playerName').value = '';
     }
 
     window.updateScore = function(pid, cat, val) {
-        if(val === '') val = 0;
-        // Directly update the database
-        set(ref(db, `games/${gameId}/${pid}/${cat}`), Number(val));
+        const numVal = Number(val);
+        
+        // Validation
+        if (val !== '' && (isNaN(numVal) || numVal < 0 || (RULES[cat] && numVal > RULES[cat]))) {
+            // Visual error feedback handled in render, but let's allow correction
+            // We save it, but UI will show it's weird if needed. 
+            // Strictly limiting here:
+            if(RULES[cat] && numVal > RULES[cat]) {
+                alert(`Max score for ${cat} is ${RULES[cat]}`);
+                renderTable(); // Reset UI to previous state
+                return;
+            }
+        }
+
+        if(val === '') {
+            set(ref(db, `games/${gameId}/current/players/${pid}/scores/${cat}`), null);
+        } else {
+            set(ref(db, `games/${gameId}/current/players/${pid}/scores/${cat}`), numVal);
+        }
     }
 
-    window.copyLink = function() { 
-        navigator.clipboard.writeText(window.location.href); 
-        alert("Link copied! Anyone with this link can join."); 
+    window.setActivePlayer = function(pid) {
+        update(ref(db, `games/${gameId}/current`), { activePlayer: pid });
+    }
+
+    window.archiveAndReset = function() {
+        if(Object.keys(playerData).length === 0) return;
+        if(!confirm("Finish game, announce winner, and start new?")) return;
+
+        // 1. Calculate Winner
+        let winnerName = "No one";
+        let maxScore = -1;
+        let results = [];
+
+        Object.keys(playerData).forEach(pid => {
+            const p = playerData[pid];
+            const score = calculateScore(p.scores || {});
+            results.push({ name: p.name, score: score });
+            if(score > maxScore) {
+                maxScore = score;
+                winnerName = p.name;
+            }
+        });
+
+        // 2. Save to History
+        push(ref(db, `games/${gameId}/history`), {
+            date: new Date().toISOString(),
+            winner: winnerName,
+            results: results
+        });
+
+        // 3. Confetti
+        startConfetti();
+
+        // 4. Reset Scores (Keep Players)
+        const updates = {};
+        Object.keys(playerData).forEach(pid => {
+            updates[`players/${pid}/scores`] = null;
+        });
+        updates['activePlayer'] = null;
+        
+        update(ref(db, `games/${gameId}/current`), updates);
+    }
+
+    window.copyLink = function() {
+        navigator.clipboard.writeText(window.location.href);
+        alert("Link copied!");
     }
 
     // --- RENDERING ---
+
     function renderTable() {
         const hRow = document.getElementById('headerRow');
         const tbody = document.getElementById('tableBody');
         
-        // Reset Header
-        hRow.innerHTML = '<th class="category-label">Category</th>';
-        tbody.innerHTML = '';
-
+        // Headers
+        hRow.innerHTML = '<th class="category-col">Category</th>';
         const pids = Object.keys(playerData).sort();
-        
-        // Build Header Columns
+
         pids.forEach(pid => {
+            const p = playerData[pid];
+            const isActive = (pid === activePlayerId);
             const th = document.createElement('th');
-            th.innerText = playerData[pid].name;
+            th.innerText = p.name;
+            if(isActive) th.className = 'active-player';
+            th.onclick = () => setActivePlayer(pid);
             hRow.appendChild(th);
         });
 
-        // Build Rows
+        // Body
+        tbody.innerHTML = '';
         categories.forEach(cat => {
             const tr = document.createElement('tr');
             if(cat.id === 'sum' || cat.id === 'bonus') tr.className = 'subtotal-row';
             if(cat.id === 'total') tr.className = 'total-row';
-            
-            // Label Column
-            tr.innerHTML = `<td class="category-label">${cat.label}</td>`;
-            
-            // Player Columns
+
+            // Label
+            const tdLabel = document.createElement('td');
+            tdLabel.className = 'category-col';
+            tdLabel.innerText = cat.label;
+            tr.appendChild(tdLabel);
+
+            // Scores
             pids.forEach(pid => {
                 const td = document.createElement('td');
+                const isActive = (pid === activePlayerId);
+                if(isActive) td.className = 'active-col';
+
                 const p = playerData[pid];
-                
+                const scores = p.scores || {};
+
                 if(cat.type === 'calc') {
-                    td.innerText = calculate(p, cat.id);
+                    // Calculated Field
+                    const val = calculateField(cat.id, scores);
+                    td.innerText = val;
                 } else {
-                    const val = (p[cat.id] !== undefined && p[cat.id] !== 0) ? p[cat.id] : '';
-                    // Input field updates Firebase on change
-                    td.innerHTML = `<input class="score-input" type="tel" value="${val}" onchange="updateScore('${pid}','${cat.id}',this.value)">`;
+                    // Input Field
+                    const val = (scores[cat.id] !== undefined) ? scores[cat.id] : '';
+                    const input = document.createElement('input');
+                    input.className = 'score-input';
+                    input.type = 'tel';
+                    input.value = val;
+                    input.placeholder = '-';
+                    
+                    // Simple validation styling
+                    if(RULES[cat.id] && val > RULES[cat.id]) input.classList.add('invalid');
+
+                    input.onchange = (e) => updateScore(pid, cat.id, e.target.value);
+                    td.appendChild(input);
                 }
                 tr.appendChild(td);
             });
@@ -238,22 +498,96 @@
         });
     }
 
-    function calculate(p, type) {
+    function calculateField(type, scores) {
         const upper = ['ones','twos','threes','fours','fives','sixes'];
         let sum = 0;
-        upper.forEach(k => sum += Number(p[k]||0));
-        
-        if(type==='sum') return sum;
-        if(type==='bonus') return sum >= 63 ? 50 : 0;
-        if(type==='total') {
-            let t = sum + (sum>=63?50:0);
+        upper.forEach(k => sum += Number(scores[k]||0));
+
+        if(type === 'sum') return sum;
+        if(type === 'bonus') return sum >= 63 ? 50 : 0;
+        if(type === 'total') {
+            let t = sum + (sum >= 63 ? 50 : 0);
             ['pair','twoPair','threeKind','fourKind','smallStr','largeStr','fullHouse','chance','yatzy']
-                .forEach(k => t += Number(p[k]||0));
+                .forEach(k => t += Number(scores[k]||0));
             return t;
         }
         return 0;
     }
-</script>
-</body>
-</html>
 
+    // Helper for calculating total easily
+    function calculateScore(scores) {
+        return calculateField('total', scores);
+    }
+
+    function renderHistory(historyData) {
+        const list = document.getElementById('historyList');
+        list.innerHTML = '';
+        if(!historyData) {
+            list.innerHTML = '<div style="color:#888; text-align:center;">No games played yet.</div>';
+            return;
+        }
+
+        // Convert object to array and sort by date desc
+        const games = Object.values(historyData).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        games.forEach(game => {
+            const div = document.createElement('div');
+            div.className = 'history-card';
+            const dateStr = new Date(game.date).toLocaleDateString();
+            div.innerHTML = `
+                <div>
+                    <span class="winner-badge">🏆 ${game.winner}</span>
+                    <span style="color:var(--text-dim)">${dateStr}</span>
+                </div>
+                <div>
+                    <strong>${game.results.find(r => r.name === game.winner)?.score || 0} pts</strong>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    // --- THEME LOGIC ---
+    window.toggleTheme = function() {
+        const body = document.body;
+        const btn = document.getElementById('themeBtn');
+        if(body.getAttribute('data-theme') === 'light') {
+            body.removeAttribute('data-theme');
+            btn.innerText = '☀️';
+        } else {
+            body.setAttribute('data-theme', 'light');
+            btn.innerText = '🌙';
+        }
+    }
+
+    // --- SCROLL SHADOW LOGIC ---
+    const wrapper = document.getElementById('tableWrapper');
+    wrapper.addEventListener('scroll', () => {
+        if(wrapper.scrollLeft > 0) wrapper.classList.add('scrolled');
+        else wrapper.classList.remove('scrolled');
+    });
+
+    // --- CONFETTI LOGIC (Simple Canvas) ---
+    const canvas = document.getElementById("confetti");
+    const ctx = canvas.getContext("2d");
+    let particles = [];
+    
+    function startConfetti() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        particles = [];
+        for(let i=0; i<150; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                vx: Math.random() * 4 - 2,
+                vy: Math.random() * 4 + 2,
+                color: `hsl(${Math.random()*360}, 100%, 50%)`
+            });
+        }
+        animateConfetti();
+        setTimeout(() => particles = [], 4000); // Stop after 4s
+    }
+
+    function animateConfetti() {
+        if(particles.length === 0) { ctx
