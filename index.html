@@ -15,17 +15,17 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        h1 { margin-bottom: 10px; font-size: 1.5rem; text-align: center; }
+        h1 { margin: 10px 0; font-size: 1.5rem; text-align: center; }
 
         .controls {
             background: #252525;
@@ -46,89 +46,82 @@
             background-color: var(--accent);
             color: white;
             border: none;
-            padding: 10px 16px;
-            border-radius: 4px;
+            padding: 12px 20px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            touch-action: manipulation; /* Improves touch response */
         }
 
-        button:hover { opacity: 0.9; }
+        button:active { transform: scale(0.98); }
         button.secondary { background-color: #555; }
 
         input[type="text"] {
-            padding: 10px;
-            border-radius: 4px;
+            padding: 12px;
+            border-radius: 6px;
             border: 1px solid #555;
             background: var(--input-bg);
             color: white;
             flex-grow: 1;
+            font-size: 1rem;
         }
 
         /* Table Styling */
         .score-container {
-            overflow-x: auto; /* Allows horizontal scroll on phone */
+            overflow-x: auto;
             width: 100%;
-            max-width: 800px;
+            max-width: 100%;
             border: 1px solid var(--border);
             border-radius: 8px;
+            background: #252525;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            background: #252525;
-            min-width: 350px; /* Ensures table doesn't squish too much */
+            min-width: 300px;
         }
 
         th, td {
-            border: 1px solid var(--border);
-            padding: 8px;
+            border: 1px solid #444;
+            padding: 10px 5px;
             text-align: center;
             white-space: nowrap;
         }
 
-        th { background-color: #333; position: sticky; top: 0; }
+        th { background-color: #333; position: sticky; top: 0; z-index: 5; }
         
         .category-label { 
             text-align: left; 
             font-weight: bold; 
-            width: 120px;
-            background-color: #252525;
+            padding-left: 10px;
+            background-color: #2a2a2a;
             position: sticky;
             left: 0;
             z-index: 10;
-            border-right: 2px solid #444;
+            border-right: 2px solid #555;
+            width: 110px;
+            font-size: 0.9rem;
         }
 
         .subtotal-row { background-color: #2c3e50; font-weight: bold; }
         .total-row { background-color: #1b5e20; font-weight: bold; font-size: 1.1em; }
 
-        /* Score Inputs */
         input.score-input {
-            width: 45px;
+            width: 100%;
+            min-width: 40px;
             background: transparent;
             border: none;
             color: var(--text);
             text-align: center;
-            font-size: 1em;
-            padding: 5px;
+            font-size: 1.1em;
+            padding: 5px 0;
         }
-        input.score-input:focus {
-            background: #444;
-            outline: none;
-            border-radius: 4px;
-        }
+        input.score-input:focus { background: #444; outline: none; }
 
-        .status-bar {
-            margin-top: 15px;
-            font-size: 0.8em;
-            color: #888;
-            text-align: center;
-        }
-        .connected { color: #4caf50; }
-        .disconnected { color: #f44336; }
-
+        .status-bar { margin-top: 15px; font-size: 0.8em; color: #888; text-align: center; }
+        .debug-msg { color: #ff9800; font-size: 0.8em; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -138,8 +131,7 @@
     <div class="controls">
         <input type="text" id="playerName" placeholder="Enter Name">
         <button onclick="addPlayer()">Add Player</button>
-        <button class="secondary" onclick="copyLink()">🔗 Share</button>
-        <button class="secondary" onclick="resetGame()" style="background-color: #d32f2f;">Reset</button>
+        <button class="secondary" onclick="copyLink()">Share Link</button>
     </div>
 
     <div class="score-container">
@@ -147,33 +139,30 @@
             <thead>
                 <tr id="headerRow">
                     <th class="category-label">Category</th>
-                    </tr>
+                </tr>
             </thead>
-            <tbody id="tableBody">
-                </tbody>
+            <tbody id="tableBody"></tbody>
         </table>
     </div>
 
     <div class="status-bar">
-        <span id="connectionStatus" class="disconnected">● Connecting...</span><br>
-        Room: <span id="roomIdDisplay">...</span>
+        Room ID: <span id="roomIdDisplay">...</span><br>
+        <span id="networkStatus">Initializing...</span>
     </div>
 
 <script>
-    // --- 1. CONFIGURATION & SETUP ---
+    // --- 1. SETUP ---
     
-    // Updated Peer List: Multiple HTTPS relays to ensure connection on GitHub Pages
+    // Using a reliable mix of peers
     const peers = [
         'https://gun-manhattan.herokuapp.com/gun',
-        'https://gun-eu.herokuapp.com/gun',
         'https://gun.glitch.me/gun',
         'https://plato.design/gun'
     ];
 
-    const gun = Gun({
-        peers: peers,
-        localStorage: false // Force sync with peers, don't just stick to local
-    });
+    // IMPORTANT: removed localStorage:false.
+    // This ensures data saves INSTANTLY to your device, then syncs later.
+    const gun = Gun({ peers: peers });
 
     const categories = [
         { id: 'ones', label: 'Ones' },
@@ -196,46 +185,42 @@
         { id: 'total', label: 'TOTAL', type: 'calc' }
     ];
 
-    // Get Game ID
+    // Get or Create Game ID
     let gameId = window.location.hash.replace('#', '');
-    if (!gameId) {
+    if (!gameId || gameId.length < 2) {
         gameId = Math.random().toString(36).substr(2, 6);
         window.location.hash = gameId;
     }
     document.getElementById('roomIdDisplay').innerText = gameId;
 
-    const gameRef = gun.get('yatzy_shared_v2').get(gameId);
+    // Connect to specific room
+    const gameRef = gun.get('yatzy_v4_stable').get(gameId);
     let playerData = {}; 
 
-    // --- 2. DATABASE LISTENERS ---
+    // --- 2. LISTENERS ---
     
-    // Connection Monitor (Rough approximation)
-    setTimeout(() => {
-        document.getElementById('connectionStatus').innerHTML = "● Live (Peers Active)";
-        document.getElementById('connectionStatus').className = "connected";
-    }, 2000);
-
-    // Sync Data
+    // Listen for data updates
     gameRef.map().on((data, key) => {
-        if(data === null) return;
-        // Merge data
+        if(!data) return; // Ignore null/empty data
+
+        // Update local data object
         playerData[key] = { ...playerData[key], ...data };
+
+        // Redraw table
         renderTable();
+        document.getElementById('networkStatus').innerText = "● Data synced";
     });
 
-    // --- 3. RENDERING LOGIC ---
+    // --- 3. RENDER UI ---
 
     function renderTable() {
         const headerRow = document.getElementById('headerRow');
         const tableBody = document.getElementById('tableBody');
         
-        // Reset Headers
+        // 1. Setup Header (Categories + Player Names)
         headerRow.innerHTML = '<th class="category-label">Category</th>';
-        
-        // Sort players by time added (approximated by ID alpha sort for stability)
-        const playerIds = Object.keys(playerData).sort();
+        const playerIds = Object.keys(playerData).sort(); // Sort so order stays same
 
-        // Build Headers
         playerIds.forEach(pid => {
             const p = playerData[pid];
             if(!p || !p.name) return;
@@ -244,20 +229,20 @@
             headerRow.appendChild(th);
         });
 
-        // Rebuild Body
+        // 2. Setup Rows
         tableBody.innerHTML = '';
         categories.forEach(cat => {
             const tr = document.createElement('tr');
             if (cat.id === 'sum' || cat.id === 'bonus') tr.className = 'subtotal-row';
             if (cat.id === 'total') tr.className = 'total-row';
 
-            // Label
+            // Category Name Column
             const tdLabel = document.createElement('td');
             tdLabel.className = 'category-label';
             tdLabel.innerText = cat.label;
             tr.appendChild(tdLabel);
 
-            // Player Columns
+            // Player Score Columns
             playerIds.forEach(pid => {
                 const p = playerData[pid];
                 if(!p || !p.name) return;
@@ -265,21 +250,18 @@
                 const td = document.createElement('td');
                 
                 if (cat.type === 'calc') {
-                    const val = calculateScore(p, cat.id);
-                    td.innerText = val;
+                    // Calculated field
+                    td.innerText = calculateScore(p, cat.id);
                 } else {
+                    // Input field
                     const input = document.createElement('input');
-                    input.type = 'tel'; // Brings up number pad on mobile
+                    input.type = 'tel'; // Numeric keyboard on mobile
                     input.className = 'score-input';
-                    input.value = (p[cat.id] !== undefined && p[cat.id] !== null) ? p[cat.id] : '';
-                    input.placeholder = "-";
+                    input.placeholder = '-';
+                    input.value = (p[cat.id] !== undefined && p[cat.id] !== 0) ? p[cat.id] : '';
                     
-                    // Update on blur (when user leaves field) to save bandwidth
-                    input.oninput = (e) => {
-                         // Optional: Local visual update immediately if desired
-                    };
+                    // Save on change
                     input.onchange = (e) => updateScore(pid, cat.id, e.target.value);
-                    
                     td.appendChild(input);
                 }
                 tr.appendChild(td);
@@ -288,69 +270,56 @@
         });
     }
 
-    // --- 4. GAME LOGIC ---
+    // --- 4. LOGIC ---
 
-    function calculateScore(playerObj, type) {
-        const upperSection = ['ones','twos','threes','fours','fives','sixes'];
+    function calculateScore(p, type) {
+        const upper = ['ones','twos','threes','fours','fives','sixes'];
         let sum = 0;
-        upperSection.forEach(k => sum += Number(playerObj[k] || 0));
+        upper.forEach(k => sum += Number(p[k] || 0));
 
         if (type === 'sum') return sum;
         if (type === 'bonus') return sum >= 63 ? 50 : 0;
-
         if (type === 'total') {
             let total = sum + (sum >= 63 ? 50 : 0);
-            const lowerSection = ['pair','twoPair','threeKind','fourKind','smallStr','largeStr','fullHouse','chance','yatzy'];
-            lowerSection.forEach(k => total += Number(playerObj[k] || 0));
+            ['pair','twoPair','threeKind','fourKind','smallStr','largeStr','fullHouse','chance','yatzy']
+                .forEach(k => total += Number(p[k] || 0));
             return total;
         }
         return 0;
     }
 
-    // --- 5. USER ACTIONS ---
-
     function addPlayer() {
         const nameInput = document.getElementById('playerName');
         const name = nameInput.value.trim();
-        if (!name) return alert("Enter a name!");
+        if (!name) return alert("Please enter a name");
 
-        // Generate ID
-        const playerId = 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+        document.getElementById('networkStatus').innerText = "Adding player...";
+
+        // Unique ID for player
+        const playerId = 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2,4);
         
-        // Initial Data
+        // Prepare data
         const newPlayer = { name: name };
-        // Pre-fill categories with null/0 so structure exists
         categories.forEach(c => {
             if(c.type !== 'calc') newPlayer[c.id] = 0;
         });
 
-        // Save to GunDB
+        // Save (Local first, then syncs)
         gameRef.get(playerId).put(newPlayer);
+
         nameInput.value = '';
     }
 
-    function updateScore(playerId, category, value) {
-        if(value === '') value = 0;
-        gameRef.get(playerId).get(category).put(Number(value));
+    function update
+Score(pid, cat, val) {
+        if(val === '') val = 0;
+        gameRef.get(pid).get(cat).put(Number(val));
     }
 
     function copyLink() {
-        const url = window.location.href;
-        navigator.clipboard.writeText(url).then(() => {
-            alert("Link copied! Send it to your group.");
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            alert("Link copied! Share with friends.");
         });
-    }
-
-    function resetGame() {
-        if(confirm("Clear all scores? (Names remain)")) {
-            Object.keys(playerData).forEach(pid => {
-                categories.forEach(cat => {
-                    if(cat.type !== 'calc') {
-                        gameRef.get(pid).get(cat.id).put(0);
-                    }
-                });
-            });
-        }
     }
 </script>
 
