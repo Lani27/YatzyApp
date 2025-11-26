@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Yatzy Scoreboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --text: #e0e0e0;
+            --accent: #4caf50;
+            --border: #333;
+            --input-bg: #2a2a2a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 10px; }
+
+        .controls {
+            background: #252525;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            border: 1px solid var(--border);
+        }
+
+        button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover { opacity: 0.9; }
+        button.secondary { background-color: #555; }
+
+        input[type="text"] {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background: var(--input-bg);
+            color: white;
+        }
+
+        /* Table Styling */
+        .score-container {
+            overflow-x: auto;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #252525;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 8px;
+            text-align: center;
+        }
+
+        th { background-color: #333; }
+        
+        .category-label { text-align: left; font-weight: bold; width: 150px; }
+        .subtotal-row { background-color: #2c3e50; font-weight: bold; }
+        .total-row { background-color: #1b5e20; font-weight: bold; font-size: 1.1em; }
+
+        /* Score Inputs */
+        input.score-input {
+            width: 50px;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            text-align: center;
+            font-size: 1em;
+        }
+        input.score-input:focus {
+            background: #444;
+            outline: none;
+        }
+
+        .status {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎲 Yatzy Live Scoreboard</h1>
+
+    <div class="controls">
+        <input type="text" id="playerName" placeholder="Enter your name">
+        <button onclick="addPlayer()">Add Player</button>
+        <button class="secondary" onclick="copyLink()">🔗 Copy Invite Link</button>
+        <button class="secondary" onclick="resetGame()" style="background-color: #d32f2f;">Reset Game</button>
+    </div>
+
+    <div class="score-container">
+        <table id="scoreTable">
+            <thead>
+                <tr id="headerRow">
+                    <th class="category-label">Category</th>
+                    </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+        </table>
+    </div>
+
+    <div class="status" id="statusMsg">Connecting to peers...</div>
+
+<script>
+    // --- 1. CONFIGURATION & SETUP ---
+    // Categories for standard Yatzy
+    const categories = [
+        { id: 'ones', label: 'Ones' },
+        { id: 'twos', label: 'Twos' },
+        { id: 'threes', label: 'Threes' },
+        { id: 'fours', label: 'Fours' },
+        { id: 'fives', label: 'Fives' },
+        { id: 'sixes', label: 'Sixes' },
+        { id: 'sum', label: 'Sum', type: 'calc' },
+        { id: 'bonus', label: 'Bonus', type: 'calc' },
+        { id: 'pair', label: 'One Pair' },
+        { id: 'twoPair', label: 'Two Pairs' },
+        { id: 'threeKind', label: 'Three of a Kind' },
+        { id: 'fourKind', label: 'Four of a Kind' },
+        { id: 'smallStr', label: 'Small Straight' },
+        { id: 'largeStr', label: 'Large Straight' },
+        { id: 'fullHouse', label: 'Full House' },
+        { id: 'chance', label: 'Chance' },
+        { id: 'yatzy', label: 'Yatzy' },
+        { id: 'total', label: 'TOTAL SCORE', type: 'calc' }
+    ];
+
+    // Initialize GunDB with public relay peers
+    const gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+
+    // Get Game ID from URL hash or create new one
+    let gameId = window.location.hash.replace('#', '');
+    if (!gameId) {
+        gameId = Math.random().toString(36).substr(2, 9);
+        window.location.hash = gameId;
+    }
+
+    const gameRef = gun.get('yatzy_v1').get(gameId);
+    let playerData = {}; // Local state mirror
+
+    // --- 2. DATABASE LISTENERS ---
+    
+    // Listen for changes in the game room
+    gameRef.map().on((data, key) => {
+        if(data === null) return; // Deleted data
+        // If key is a player ID
+        playerData[key] = data;
+        renderTable();
+    });
+
+    document.getElementById('statusMsg').innerText = ⁠ Room ID: ${gameId} ⁠;
+
+    // --- 3. RENDERING LOGIC ---
+
+    function renderTable() {
+        const headerRow = document.getElementById('headerRow');
+        const tableBody = document.getElementById('tableBody');
+        
+        // Clear existing (except label column header)
+        headerRow.innerHTML = '<th class="category-label">Category</th>';
+        tableBody.innerHTML = '';
+
+        const playerIds = Object.keys(playerData).sort();
+
+        // Build Headers
+        playerIds.forEach(pid => {
+            const p = playerData[pid];
+            if(!p || !p.name) return;
+            const th = document.createElement('th');
+            th.innerText = p.name;
+            headerRow.appendChild(th);
+        });
+
+        // Build Rows
+        categories.forEach(cat => {
+            const tr = document.createElement('tr');
+            if (cat.id === 'sum' || cat.id === 'bonus') tr.className = 'subtotal-row';
+            if (cat.id === 'total') tr.className = 'total-row';
+
+            // Label Column
+            const tdLabel = document.createElement('td');
+            tdLabel.className = 'category-label';
+            tdLabel.innerText = cat.label;
+            tr.appendChild(tdLabel);
+
+            // Player Columns
+            playerIds.forEach(pid => {
+                const p = playerData[pid];
+                if(!p || !p.name) return;
+
+                const td = document.createElement('td');
+                
+                if (cat.type === 'calc') {
+                    // Calculated fields (read-only)
+                    const val = calculateScore(p, cat.id);
+                    td.innerText = val;
+                } else {
+                    // Input fields
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.className = 'score-input';
+                    input.value = p[cat.id] || '';
+                    // Update DB on change
+                    input.onchange = (e) => updateScore(pid, cat.id, e.target.value);
+                    td.appendChild(input);
+                }
+                tr.appendChild(td);
+            });
+            tableBody.appendChild(tr);
+        });
+    }
+
+    // --- 4. GAME LOGIC ---
+
+    function calculateScore(playerObj, type) {
+        const upperSection = ['ones','twos','threes','fours','fives','sixes'];
+        let sum = 0;
+
+        upperSection.forEach(k => sum += Number(playerObj[k] || 0));
+
+        if (type === 'sum') return sum;
+        
+        if (type === 'bonus') {
+            return sum >= 63 ? 50 : 0;
+        }
+
+        if (type === 'total') {
+            let total = sum + (sum >= 63 ? 50 : 0);
+            const lowerSection = ['pair','twoPair','threeKind','fourKind','smallStr','largeStr','fullHouse','chance','yatzy'];
+            lowerSection.forEach(k => total += Number(playerObj[k] || 0));
+            return total;
+        }
+        return 0;
+    }
+
+    // --- 5. USER ACTIONS ---
+
+    function addPlayer() {
+        const nameInput = document.getElementById('playerName');
+        const name = nameInput.value.trim();
+        if (!name) return alert("Enter a name!");
+
+        const playerId = 'p_' + Math.random().toString(36).substr(2, 5);
+        
+        // Save to DB
+        gameRef.get(playerId).put({
+            name: name,
+            ones: 0, twos: 0, threes: 0, fours: 0, fives: 0, sixes: 0 // Init basic
+        });
+        
+        nameInput.value = '';
+    }
+
+    function updateScore(playerId, category, value) {
+        // Debounce or validate could go here
+        gameRef.get(playerId).get(category).put(Number(value));
+    }
+
+    function copyLink() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            alert("Link copied! Send this to your friends.");
+        });
+    }
+
+    function resetGame() {
+        if(confirm("Are you sure? This clears scores for everyone connected.")) {
+            // In Gun, we usually just overwrite data or generate a new ID. 
+            // For simplicity, we keep players but zero scores.
+            Object.keys(playerData).forEach(pid => {
+                categories.forEach(cat => {
+                    if(cat.type !== 'calc') {
+                        gameRef.get(pid).get(cat.id).put(0);
+                    }
+                });
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
