@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Yatzy Ultimate</title>
+    
+    <!-- 1. LOAD FIREBASE "CLASSIC" SCRIPTS (More reliable than Modules) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+
     <style>
         /* --- CSS STYLES --- */
         :root {
@@ -25,7 +30,7 @@
         h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
         
         /* Status Dot */
-        .status-dot { width: 10px; height: 10px; background-color: #f44336; border-radius: 50%; display: inline-block; }
+        .status-dot { width: 10px; height: 10px; background-color: #f44336; border-radius: 50%; display: inline-block; transition: background 0.3s; }
         .status-dot.online { background-color: #4caf50; box-shadow: 0 0 0 0 rgba(76, 175, 80, 1); animation: pulse-green 2s infinite; }
         @keyframes pulse-green { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
 
@@ -66,7 +71,7 @@
         #debug-console {
             width: 100%; background: #000; color: #00ff00; font-family: monospace; font-size: 10px;
             padding: 10px; margin-top: 20px; border-top: 1px solid #333; max-height: 100px; overflow-y: auto;
-            display: block; /* Force visible for now */
+            display: none;
         }
         .log-err { color: #ff4444; }
         .log-ok { color: #44ff44; }
@@ -108,8 +113,7 @@
         <div id="historyList"></div>
     </div>
 
-    <!-- DEBUG CONSOLE FOR TROUBLESHOOTING -->
-    <div id="debug-console">Initializing System...</div>
+    <div id="debug-console">System Log:<br></div>
 
     <!-- Modals -->
     <div id="ruleModal" class="modal-backdrop" onclick="if(event.target === this) this.style.display='none'">
@@ -143,48 +147,34 @@
         </div>
     </div>
 
-    <!-- SCRIPT 1: GUARANTEED STARTUP (Runs immediately) -->
     <script>
+        // --- LOGGING ---
         function log(msg, type="info") {
             const c = document.getElementById('debug-console');
+            if(type==='error') c.style.display = 'block';
             const line = document.createElement('div');
             line.textContent = `> ${msg}`;
             if(type==='error') line.className='log-err';
             else if(type==='success') line.className='log-ok';
             c.appendChild(line);
-            c.scrollTop = c.scrollHeight;
             console.log(msg);
         }
 
-        // 1. Generate ID Immediately (Fixes "Code not generating" issue)
-        try {
-            let hash = window.location.hash.replace('#', '');
-            if (!hash || hash.length < 2) {
-                hash = Math.random().toString(36).substr(2, 6);
-                window.location.hash = hash;
-                log("Generated New Room ID: " + hash);
-            } else {
-                log("Joined Existing Room: " + hash);
-            }
-            document.getElementById('roomIdDisplay').innerText = hash;
-            window.GAME_ID = hash; // Global var for module to pick up
-        } catch(e) {
-            log("CRITICAL ERROR: Could not generate ID. " + e.message, "error");
+        // --- 1. STARTUP (No external dependencies) ---
+        let gameId = window.location.hash.replace('#', '');
+        if (!gameId || gameId.length < 2) {
+            gameId = Math.random().toString(36).substr(2, 6);
+            window.location.hash = gameId;
+            log("Generated ID: " + gameId);
+        } else {
+            log("Found ID: " + gameId);
         }
-    </script>
+        document.getElementById('roomIdDisplay').innerText = gameId;
 
-    <!-- SCRIPT 2: FIREBASE MODULE (Loads from Cloud) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set, update, push } 
-               from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-        log("Firebase Modules Loaded. Initializing...");
-
+        // --- 2. FIREBASE SETUP (Compat Mode) ---
         const firebaseConfig = {
             apiKey: "AIzaSyDu86vB2-zePebM5oL_onW5E5Aiszgzh84",
             authDomain: "yatzy-eb87c.firebaseapp.com",
-            // CRITICAL: Using the region-specific URL you provided earlier
             databaseURL: "https://yatzy-eb87c-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "yatzy-eb87c",
             storageBucket: "yatzy-eb87c.firebasestorage.app",
@@ -194,15 +184,48 @@
         };
 
         let db;
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getDatabase(app);
-            log("Firebase Configured. Connecting...", "success");
-        } catch (e) {
-            log("CONFIG FAILED: " + e.message, "error");
+        let playerData = {};
+        let roomPin = null;
+        let isAuthorized = false;
+        let soundEnabled = true;
+
+        // Wait for scripts to load, then init
+        window.onload = function() {
+            if (typeof firebase !== 'undefined') {
+                log("Firebase Scripts Loaded", "success");
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.database();
+                    log("Firebase Initialized. Connecting...");
+                    setupListeners();
+                } catch (e) {
+                    log("INIT ERROR: " + e.message, "error");
+                }
+            } else {
+                log("CRITICAL: Firebase scripts failed to load.", "error");
+                alert("Error: Check internet connection.");
+            }
+        };
+
+        function setupListeners() {
+            const roomRef = db.ref(`games/${gameId}`);
+            roomRef.on('value', (snapshot) => {
+                log("Data received", "success");
+                const data = snapshot.val() || {};
+                playerData = data.current?.players || {};
+                roomPin = data.settings?.pin || null;
+                
+                document.getElementById('lockBtn').innerText = roomPin ? '🔒' : '🔓';
+                document.getElementById('statusDot').classList.add('online');
+                renderTable();
+            }, (err) => {
+                log("DB Error: " + err.message, "error");
+            });
+
+            db.ref(`games/${gameId}/history`).on('value', (snap) => renderHistory(snap.val()));
         }
 
-        // --- CONSTANTS ---
+        // --- LOGIC ---
         const RULES={ones:5,twos:10,threes:15,fours:20,fives:25,sixes:30,pair:12,twoPair:22,threeKind:30,fourKind:30,smallStr:30,largeStr:40,fullHouse:28,chance:30,yatzy:50};
         const CATEGORIES=[
             {id:'ones',label:'Ones',rule:'Sum of ones. Max 5.'},
@@ -225,64 +248,18 @@
             {id:'total',label:'TOTAL',type:'calc'}
         ];
 
-        // --- STATE ---
-        let playerData = {};
-        let roomPin = null;
-        let isAuthorized = false;
-        let soundEnabled = true;
-        const gameId = window.GAME_ID; // Pick up ID from Script 1
-
-        // --- DB LISTENERS ---
-        try {
-            const roomRef = ref(db, `games/${gameId}`);
-            onValue(roomRef, (snapshot) => {
-                log("Data Received from Cloud", "success");
-                const data = snapshot.val() || {};
-                playerData = data.current?.players || {};
-                roomPin = data.settings?.pin || null;
-                
-                document.getElementById('lockBtn').innerText = roomPin ? '🔒' : '🔓';
-                document.getElementById('statusDot').classList.add('online');
-                renderTable();
-            }, (error) => {
-                log("DB READ ERROR: " + error.message, "error");
-            });
-
-            onValue(ref(db, `games/${gameId}/history`), (snap) => renderHistory(snap.val()));
-        } catch(e) {
-            log("LISTENER ERROR: " + e.message, "error");
-        }
-
-        // --- GLOBAL EXPORTS (Connect buttons to module functions) ---
-        window.toggleSound = () => { soundEnabled=!soundEnabled; document.getElementById('soundBtn').innerText=soundEnabled?'🔊':'🔇'; };
-        window.checkAuth = () => { if(roomPin && !isAuthorized){document.getElementById('pinModal').style.display='flex';return false;} return true; };
-        
-        window.verifyPin = () => {
-            if(document.getElementById('pinInput').value === String(roomPin)) {
-                isAuthorized=true; document.getElementById('pinModal').style.display='none'; Sound.score();
-            } else { Sound.error(); alert("Wrong PIN"); }
-        };
-        window.toggleLockModal = () => document.getElementById((!isAuthorized && roomPin)?'pinModal':'setPinModal').style.display='flex';
-        
-        window.setRoomPin = () => {
-            const p = document.getElementById('newPinInput').value;
-            if(p.length<4) return alert("4 digits");
-            set(ref(db, `games/${gameId}/settings/pin`), p); isAuthorized=true; 
-            document.getElementById('setPinModal').style.display='none';
-        };
-        window.removeRoomPin = () => { set(ref(db, `games/${gameId}/settings/pin`), null); document.getElementById('setPinModal').style.display='none'; };
-
-        window.addPlayer = () => {
-            if(!window.checkAuth()) return;
+        // Global functions for buttons
+        window.addPlayer = function() {
+            if(!checkAuth()) return;
             const name = document.getElementById('playerName').value.trim();
             if(!name) return;
             Sound.tap();
-            update(ref(db, `games/${gameId}/current/players/p_${Date.now()}`), { name: name, scores: {} });
+            db.ref(`games/${gameId}/current/players/p_${Date.now()}`).update({ name: name, scores: {} });
             document.getElementById('playerName').value = '';
         };
 
-        window.updateScore = (pid, cat, val) => {
-            if(!window.checkAuth()) { renderTable(); return; }
+        window.updateScore = function(pid, cat, val) {
+            if(!checkAuth()) { renderTable(); return; }
             const num = Number(val);
             let err = "";
             if(val!=='') {
@@ -297,11 +274,12 @@
                 renderTable(); return;
             }
             if(val!=='') { (cat==='yatzy'&&num===50)?(Sound.yatzy(),startConfetti()):Sound.score(); }
-            set(ref(db, `games/${gameId}/current/players/${pid}/scores/${cat}`), val===''?null:num);
+            
+            db.ref(`games/${gameId}/current/players/${pid}/scores/${cat}`).set(val===''?null:num);
         };
 
-        window.archiveAndReset = () => {
-            if(!window.checkAuth()) return;
+        window.archiveAndReset = function() {
+            if(!checkAuth()) return;
             const pList = playerData ? Object.values(playerData) : [];
             if(!pList.length) return alert("No players");
             
@@ -315,20 +293,18 @@
             if(!confirm(`Finish game?\nWinner: ${winner} (${max})`)) return;
             try{Sound.fanfare();startConfetti();}catch(e){}
             
-            push(ref(db, `games/${gameId}/history`), { date: new Date().toISOString(), winner: winner, results: results });
+            db.ref(`games/${gameId}/history`).push({ date: new Date().toISOString(), winner: winner, results: results });
             
             const updates={};
             Object.keys(playerData).forEach(pid => updates[`players/${pid}/scores`] = null);
-            update(ref(db, `games/${gameId}/current`), updates);
+            db.ref(`games/${gameId}/current`).update(updates);
             setTimeout(()=>alert(`🏆 WINNER: ${winner} 🏆`), 300);
         };
 
-        // --- RENDER ---
+        // --- RENDER & HELPERS ---
         function renderTable() {
             const hRow = document.getElementById('headerRow');
             const tbody = document.getElementById('tableBody');
-            
-            // Keep category header, clear rest
             while(hRow.children.length > 1) hRow.removeChild(hRow.lastChild);
             
             const pids = Object.keys(playerData).sort();
@@ -360,4 +336,34 @@
                         td.innerText = calculateField(cat.id, scores);
                     } else {
                         const val = (scores[cat.id]!==undefined) ? scores[cat.id] : '';
-  
+                        const inp = document.createElement('input');
+                        inp.className='score-input'; inp.type='tel'; inp.value=val; inp.placeholder='-';
+                        inp.setAttribute('data-pid', pid); inp.setAttribute('data-cat', cat.id);
+                        inp.onchange=(e)=>window.updateScore(pid, cat.id, e.target.value);
+                        td.appendChild(inp);
+                    }
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        function calculateField(type, s) {
+            const upper = ['ones','twos','threes','fours','fives','sixes'];
+            let sum=0; upper.forEach(k => sum+=Number(s[k]||0));
+            if(type==='sum') return sum;
+            if(type==='bonus') return sum>=63?50:0;
+            if(type==='total') {
+                let t=sum+(sum>=63?50:0);
+                ['pair','twoPair','threeKind','fourKind','smallStr','largeStr','fullHouse','chance','yatzy']
+                    .forEach(k=>t+=Number(s[k]||0));
+                return t;
+            }
+            return 0;
+        }
+        function calculateTotal(s){return calculateField('total',s);}
+        function renderHistory(h){
+            const l=document.getElementById('historyList'); l.innerHTML=''; if(!h)return;
+            Object.values(h).reverse().forEach(g=>{
+                const d=document.createElement('div'); d.className='history-card';
+                d.innerHTML=`<span>🏆 <b>${g.winner}</b></s
