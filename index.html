@@ -51,7 +51,7 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 1rem;
-            touch-action: manipulation; /* Improves touch response */
+            touch-action: manipulation;
         }
 
         button:active { transform: scale(0.98); }
@@ -71,7 +71,6 @@
         .score-container {
             overflow-x: auto;
             width: 100%;
-            max-width: 100%;
             border: 1px solid var(--border);
             border-radius: 8px;
             background: #252525;
@@ -121,7 +120,8 @@
         input.score-input:focus { background: #444; outline: none; }
 
         .status-bar { margin-top: 15px; font-size: 0.8em; color: #888; text-align: center; }
-        .debug-msg { color: #ff9800; font-size: 0.8em; margin-top: 5px; }
+        .connected { color: #4caf50; }
+        .offline { color: #ff9800; }
     </style>
 </head>
 <body>
@@ -146,23 +146,20 @@
     </div>
 
     <div class="status-bar">
-        Room ID: <span id="roomIdDisplay">...</span><br>
-        <span id="networkStatus">Initializing...</span>
+        Room ID: <strong id="roomIdDisplay">Loading...</strong><br>
+        <span id="networkStatus" class="offline">● Local Mode (Connecting...)</span>
     </div>
 
 <script>
-    // --- 1. SETUP ---
+    // --- 1. IMMEDIATE SETUP (Runs before network) ---
     
-    // Using a reliable mix of peers
-    const peers = [
-        'https://gun-manhattan.herokuapp.com/gun',
-        'https://gun.glitch.me/gun',
-        'https://plato.design/gun'
-    ];
-
-    // IMPORTANT: removed localStorage:false.
-    // This ensures data saves INSTANTLY to your device, then syncs later.
-    const gun = Gun({ peers: peers });
+    // Get or Create Game ID Immediately so UI doesn't hang
+    let gameId = window.location.hash.replace('#', '');
+    if (!gameId || gameId.length < 2) {
+        gameId = Math.random().toString(36).substr(2, 6);
+        window.location.hash = gameId;
+    }
+    document.getElementById('roomIdDisplay').innerText = gameId;
 
     const categories = [
         { id: 'ones', label: 'Ones' },
@@ -185,31 +182,38 @@
         { id: 'total', label: 'TOTAL', type: 'calc' }
     ];
 
-    // Get or Create Game ID
-    let gameId = window.location.hash.replace('#', '');
-    if (!gameId || gameId.length < 2) {
-        gameId = Math.random().toString(36).substr(2, 6);
-        window.location.hash = gameId;
-    }
-    document.getElementById('roomIdDisplay').innerText = gameId;
-
-    // Connect to specific room
-    const gameRef = gun.get('yatzy_v4_stable').get(gameId);
     let playerData = {}; 
 
-    // --- 2. LISTENERS ---
-    
-    // Listen for data updates
-    gameRef.map().on((data, key) => {
-        if(!data) return; // Ignore null/empty data
+    // --- 2. NETWORK SETUP ---
 
-        // Update local data object
-        playerData[key] = { ...playerData[key], ...data };
+    const peers = [
+        'https://gun-manhattan.herokuapp.com/gun',
+        'https://gun-eu.herokuapp.com/gun',
+        'https://gun.glitch.me/gun'
+    ];
 
-        // Redraw table
-        renderTable();
-        document.getElementById('networkStatus').innerText = "● Data synced";
-    });
+    // Initialize Gun (safe mode)
+    let gun;
+    try {
+        gun = Gun({ peers: peers });
+        // Connect to specific room
+        const gameRef = gun.get('yatzy_v5_robust').get(gameId);
+
+        // Listen for data updates
+        gameRef.map().on((data, key) => {
+            if(!data) return;
+            playerData[key] = { ...playerData[key], ...data };
+            renderTable();
+            
+            // If we get data, we know we are connected
+            const statusEl = document.getElementById('networkStatus');
+            statusEl.innerText = "● Live (Synced)";
+            statusEl.className = "connected";
+        });
+    } catch (e) {
+        console.error("Gun failed to load:", e);
+        alert("Network error: You can play offline, but syncing might fail.");
+    }
 
     // --- 3. RENDER UI ---
 
@@ -219,7 +223,7 @@
         
         // 1. Setup Header (Categories + Player Names)
         headerRow.innerHTML = '<th class="category-label">Category</th>';
-        const playerIds = Object.keys(playerData).sort(); // Sort so order stays same
+        const playerIds = Object.keys(playerData).sort(); 
 
         playerIds.forEach(pid => {
             const p = playerData[pid];
@@ -236,13 +240,11 @@
             if (cat.id === 'sum' || cat.id === 'bonus') tr.className = 'subtotal-row';
             if (cat.id === 'total') tr.className = 'total-row';
 
-            // Category Name Column
             const tdLabel = document.createElement('td');
             tdLabel.className = 'category-label';
             tdLabel.innerText = cat.label;
             tr.appendChild(tdLabel);
 
-            // Player Score Columns
             playerIds.forEach(pid => {
                 const p = playerData[pid];
                 if(!p || !p.name) return;
@@ -250,17 +252,14 @@
                 const td = document.createElement('td');
                 
                 if (cat.type === 'calc') {
-                    // Calculated field
                     td.innerText = calculateScore(p, cat.id);
                 } else {
-                    // Input field
                     const input = document.createElement('input');
-                    input.type = 'tel'; // Numeric keyboard on mobile
+                    input.type = 'tel';
                     input.className = 'score-input';
                     input.placeholder = '-';
                     input.value = (p[cat.id] !== undefined && p[cat.id] !== 0) ? p[cat.id] : '';
                     
-                    // Save on change
                     input.onchange = (e) => updateScore(pid, cat.id, e.target.value);
                     td.appendChild(input);
                 }
@@ -293,27 +292,37 @@
         const name = nameInput.value.trim();
         if (!name) return alert("Please enter a name");
 
-        document.getElementById('networkStatus').innerText = "Adding player...";
-
-        // Unique ID for player
-        const playerId = 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2,4);
+        // Use a shorter, cleaner ID logic
+        const playerId = 'p_' + Date.now();
         
-        // Prepare data
         const newPlayer = { name: name };
         categories.forEach(c => {
             if(c.type !== 'calc') newPlayer[c.id] = 0;
         });
 
-        // Save (Local first, then syncs)
-        gameRef.get(playerId).put(newPlayer);
+        // Update LOCAL data immediately (so you see it instantly)
+        playerData[playerId] = newPlayer;
+        renderTable();
 
+        // Send to Network
+        if(gun) {
+            gun.get('yatzy_v5_robust').get(gameId).get(playerId).put(newPlayer);
+        }
+        
         nameInput.value = '';
     }
 
-    function update
-Score(pid, cat, val) {
+    function updateScore(pid, cat, val) {
         if(val === '') val = 0;
-        gameRef.get(pid).get(cat).put(Number(val));
+        
+        // Update LOCAL data immediately
+        if(playerData[pid]) playerData[pid][cat] = Number(val);
+        renderTable();
+
+        // Send to Network
+        if(gun) {
+            gun.get('yatzy_v5_robust').get(gameId).get(pid).get(cat).put(Number(val));
+        }
     }
 
     function copyLink() {
@@ -321,6 +330,9 @@ Score(pid, cat, val) {
             alert("Link copied! Share with friends.");
         });
     }
+
+    // Trigger initial render
+    renderTable();
 </script>
 
 </body>
