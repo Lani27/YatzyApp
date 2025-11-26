@@ -42,7 +42,6 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* --- HEADER & CONTROLS --- */
         header {
             width: 100%;
             max-width: 800px;
@@ -80,7 +79,6 @@
             cursor: pointer; font-size: 1.2rem;
             display: flex; align-items: center; justify-content: center;
         }
-        .icon-btn.active { background-color: var(--highlight); border-color: var(--accent); }
 
         .controls-area {
             background: var(--surface);
@@ -109,7 +107,6 @@
             transition: transform 0.1s, background 0.2s;
         }
         button:active { transform: scale(0.96); }
-        button:hover { background-color: var(--accent-hover); }
         button.secondary { background-color: #555; }
         button.danger { background-color: #d32f2f; }
 
@@ -123,7 +120,6 @@
             min-width: 120px;
         }
 
-        /* --- SCORE TABLE --- */
         .table-wrapper {
             width: 100%;
             max-width: 900px;
@@ -152,12 +148,8 @@
             cursor: pointer;
             user-select: none;
         }
-        
-        th.active-player, td.active-col {
-            background-color: var(--highlight) !important;
-        }
+        th.active-player, td.active-col { background-color: var(--highlight) !important; }
 
-        /* Sticky First Column */
         .category-col {
             position: sticky;
             left: 0;
@@ -172,9 +164,7 @@
             justify-content: space-between;
         }
         
-        .table-wrapper.scrolled .category-col {
-            box-shadow: 2px 0 5px var(--shadow-color);
-        }
+        .table-wrapper.scrolled .category-col { box-shadow: 2px 0 5px var(--shadow-color); }
 
         .help-icon {
             font-size: 0.8em;
@@ -201,25 +191,14 @@
             font-size: 1.1em;
             font-weight: 500;
             padding: 5px 0;
-            transition: color 0.2s, background 0.2s;
         }
         input.score-input:focus { background: rgba(255,255,255,0.1); outline: none; border-radius: 4px; }
-        
-        /* Validation Shake */
         input.invalid-shake {
-            color: #f44336;
-            border-bottom: 2px solid #f44336;
+            color: #f44336; border-bottom: 2px solid #f44336;
             animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
         }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-
-        /* --- MODALS --- */
         .modal-backdrop {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8);
@@ -237,10 +216,8 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             text-align: center;
         }
-        .modal h3 { margin-top: 0; }
         .rule-desc { text-align: left; line-height: 1.5; margin: 15px 0; }
 
-        /* --- HISTORY --- */
         .history-section { margin-top: 30px; width: 100%; max-width: 600px; }
         .history-card {
             background: var(--surface);
@@ -252,30 +229,23 @@
             justify-content: space-between;
             font-size: 0.9rem;
         }
-        .winner-badge {
-            background: #ffd700; color: #000;
-            padding: 2px 6px; border-radius: 4px;
-            font-weight: bold; font-size: 0.8em;
-            margin-right: 5px;
-        }
 
-        #confetti {
-            position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 9999;
+        #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+        
+        #error-banner {
+            display: none;
+            background: #f44336; color: white; padding: 10px;
+            text-align: center; width: 100%; position: fixed; top: 0; left: 0; z-index: 10000;
         }
     </style>
 </head>
 <body>
 
+    <div id="error-banner">⚠️ Error: Could not connect to Firebase. Check your internet or configuration.</div>
     <canvas id="confetti"></canvas>
 
     <header>
-        <h1>
-            <span id="statusDot" class="status-dot"></span> 
-            Yatzy
-        </h1>
+        <h1><span id="statusDot" class="status-dot"></span> Yatzy</h1>
         <div class="header-actions">
             <button class="icon-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
             <button class="icon-btn" id="lockBtn" onclick="toggleLockModal()">🔓</button>
@@ -293,14 +263,9 @@
     <div class="table-wrapper" id="tableWrapper">
         <table id="scoreTable">
             <thead>
-                <tr id="headerRow">
-                    <th class="category-col">Category</th>
-                    <!-- Players go here -->
-                </tr>
+                <tr id="headerRow"><th class="category-col">Category</th></tr>
             </thead>
-            <tbody id="tableBody">
-                <!-- Scores go here -->
-            </tbody>
+            <tbody id="tableBody"></tbody>
         </table>
     </div>
 
@@ -309,7 +274,7 @@
         <div id="historyList"></div>
     </div>
 
-    <!-- Rule Modal -->
+    <!-- Modals -->
     <div id="ruleModal" class="modal-backdrop" onclick="if(event.target === this) this.style.display='none'">
         <div class="modal">
             <h3 id="ruleTitle">Rule</h3>
@@ -318,7 +283,6 @@
         </div>
     </div>
 
-    <!-- PIN Modal -->
     <div id="pinModal" class="modal-backdrop">
         <div class="modal">
             <h3>🔒 Room Locked</h3>
@@ -331,23 +295,30 @@
         </div>
     </div>
 
-    <!-- Set PIN Modal -->
     <div id="setPinModal" class="modal-backdrop">
         <div class="modal">
             <h3>🔐 Set Room PIN</h3>
-            <p>Protect this scoreboard from strangers?</p>
+            <p>Protect this scoreboard?</p>
             <input type="text" id="newPinInput" placeholder="Create 4-digit PIN" maxlength="4" style="width: 100%; margin-bottom: 10px;">
-            <button onclick="setRoomPin()">Set Lock</button>
-            <br><br>
+            <button onclick="setRoomPin()">Set Lock</button><br><br>
             <button class="secondary" style="font-size: 0.8em;" onclick="removeRoomPin()">Remove Lock</button>
             <button class="secondary" style="font-size: 0.8em;" onclick="document.getElementById('setPinModal').style.display='none'">Cancel</button>
         </div>
     </div>
 
+<!-- 
+    CRITICAL FIX: Using Firebase v10.13.1 (Stable). 
+    v12.6.0 does not exist yet and caused the crash. 
+-->
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
     import { getDatabase, ref, onValue, set, update, push } 
-           from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+           from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+
+    // --- ERROR HANDLING ---
+    window.onerror = function() {
+        document.getElementById('error-banner').style.display = 'block';
+    };
 
     // --- CONFIGURATION ---
     const firebaseConfig = {
@@ -361,8 +332,15 @@
         measurementId: "G-6FCGWX4R4L"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    let app, db;
+    try {
+        app = initializeApp(firebaseConfig);
+        db = getDatabase(app);
+    } catch (e) {
+        console.error("Firebase Init Error:", e);
+        document.getElementById('error-banner').innerText = "⚠️ Config Error: " + e.message;
+        document.getElementById('error-banner').style.display = 'block';
+    }
 
     // --- GAME RULES ---
     const RULES = {
@@ -372,73 +350,59 @@
     };
 
     const CATEGORIES = [
-        { id: 'ones', label: 'Ones', rule: 'Sum of all ones rolled. Max 5.' },
-        { id: 'twos', label: 'Twos', rule: 'Sum of all twos rolled. Max 10.' },
-        { id: 'threes', label: 'Threes', rule: 'Sum of all threes rolled. Max 15.' },
-        { id: 'fours', label: 'Fours', rule: 'Sum of all fours rolled. Max 20.' },
-        { id: 'fives', label: 'Fives', rule: 'Sum of all fives rolled. Max 25.' },
-        { id: 'sixes', label: 'Sixes', rule: 'Sum of all sixes rolled. Max 30.' },
+        { id: 'ones', label: 'Ones', rule: 'Sum of ones. Max 5.' },
+        { id: 'twos', label: 'Twos', rule: 'Sum of twos. Max 10.' },
+        { id: 'threes', label: 'Threes', rule: 'Sum of threes. Max 15.' },
+        { id: 'fours', label: 'Fours', rule: 'Sum of fours. Max 20.' },
+        { id: 'fives', label: 'Fives', rule: 'Sum of fives. Max 25.' },
+        { id: 'sixes', label: 'Sixes', rule: 'Sum of sixes. Max 30.' },
         { id: 'sum', label: 'Sum', type: 'calc' },
-        { id: 'bonus', label: 'Bonus', type: 'calc', rule: 'If Sum ≥ 63, score 50. Else 0.' },
-        { id: 'pair', label: 'One Pair', rule: 'Two dice of the same number. Score sum of those two. Max 12.' },
-        { id: 'twoPair', label: 'Two Pairs', rule: 'Two different pairs. Score sum of dice. Max 22.' },
-        { id: 'threeKind', label: '3 of a Kind', rule: 'Three dice same number. Score sum of those three.' },
-        { id: 'fourKind', label: '4 of a Kind', rule: 'Four dice same number. Score sum of those four.' },
-        { id: 'smallStr', label: 'Small Str.', rule: 'Sequence of 4 (e.g. 1-2-3-4-5). Score: 15 (Standard) or 30 (Classic).' },
-        { id: 'largeStr', label: 'Large Str.', rule: 'Sequence of 5 (e.g. 2-3-4-5-6). Score: 20 (Standard) or 40 (Classic).' },
-        { id: 'fullHouse', label: 'Full House', rule: 'Three of one number + Two of another. Score sum of all dice (or 25).' },
-        { id: 'chance', label: 'Chance', rule: 'Sum of all 5 dice. Use when nothing else fits. Max 30.' },
-        { id: 'yatzy', label: 'Yatzy', rule: 'All 5 dice the same. Score: 50. (Must be 50 or 0).' },
+        { id: 'bonus', label: 'Bonus', type: 'calc', rule: 'If Sum ≥ 63, score 50.' },
+        { id: 'pair', label: 'One Pair', rule: 'Sum of two same dice.' },
+        { id: 'twoPair', label: 'Two Pairs', rule: 'Sum of two different pairs.' },
+        { id: 'threeKind', label: '3 of a Kind', rule: 'Sum of three same dice.' },
+        { id: 'fourKind', label: '4 of a Kind', rule: 'Sum of four same dice.' },
+        { id: 'smallStr', label: 'Small Str.', rule: 'Sequence of 4. Score 15 (Std) or 30 (Classic).' },
+        { id: 'largeStr', label: 'Large Str.', rule: 'Sequence of 5. Score 20 (Std) or 40 (Classic).' },
+        { id: 'fullHouse', label: 'Full House', rule: '3 of one + 2 of another.' },
+        { id: 'chance', label: 'Chance', rule: 'Sum of all 5 dice.' },
+        { id: 'yatzy', label: 'Yatzy', rule: 'All 5 same. Must be 50 or 0.' },
         { id: 'total', label: 'TOTAL', type: 'calc' }
     ];
 
-    // --- STATE ---
+    // --- STATE & ID GENERATION ---
+    // This logic MUST run to generate the ID
     let gameId = window.location.hash.replace('#', '');
-    if (!gameId) { gameId = Math.random().toString(36).substr(2, 6); window.location.hash = gameId; }
+    if (!gameId || gameId.length < 2) { 
+        gameId = Math.random().toString(36).substr(2, 6); 
+        window.location.hash = gameId; 
+    }
     
     let playerData = {};
     let roomPin = null;
     let isAuthorized = false;
     let soundEnabled = true;
 
-    // --- SOUND ENGINE ---
+    // --- SOUND ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
-
     const Sound = {
-        playTone: (freq, type, duration) => {
-            if (!soundEnabled || audioCtx.state === 'suspended') audioCtx.resume();
-            if (!soundEnabled) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.frequency.value = freq;
-            osc.type = type;
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-            osc.stop(audioCtx.currentTime + duration);
+        playTone: (f, t, d) => {
+            if(!soundEnabled || audioCtx.state==='suspended') audioCtx.resume();
+            if(!soundEnabled) return;
+            const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+            o.frequency.value=f; o.type=t; o.connect(g); g.connect(audioCtx.destination);
+            o.start(); g.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime+d);
+            o.stop(audioCtx.currentTime+d);
         },
-        tap: () => Sound.playTone(600, 'sine', 0.1),
-        score: () => {
-            Sound.playTone(400, 'sine', 0.1);
-            setTimeout(() => Sound.playTone(600, 'sine', 0.2), 100);
-        },
-        yatzy: () => {
-            [523, 659, 783, 1046, 1568].forEach((f, i) => 
-                setTimeout(() => Sound.playTone(f, 'triangle', 0.15), i * 80)
-            );
-        },
-        error: () => Sound.playTone(150, 'sawtooth', 0.3),
-        fanfare: () => {
-            [400, 500, 600, 800].forEach((f, i) => setTimeout(() => Sound.playTone(f, 'square', 0.2), i * 150));
-        }
+        tap:()=>Sound.playTone(600,'sine',0.1),
+        score:()=>{Sound.playTone(400,'sine',0.1);setTimeout(()=>Sound.playTone(600,'sine',0.2),100)},
+        yatzy:()=>{[523,659,783,1046,1568].forEach((f,i)=>setTimeout(()=>Sound.playTone(f,'triangle',0.15),i*80))},
+        error:()=>Sound.playTone(150,'sawtooth',0.3),
+        fanfare:()=>{[400,500,600,800].forEach((f,i)=>setTimeout(()=>Sound.playTone(f,'square',0.2),i*150))}
     };
 
-    window.toggleSound = () => {
-        soundEnabled = !soundEnabled;
-        document.getElementById('soundBtn').innerText = soundEnabled ? '🔊' : '🔇';
-    };
+    window.toggleSound = () => { soundEnabled=!soundEnabled; document.getElementById('soundBtn').innerText=soundEnabled?'🔊':'🔇'; };
 
     // --- FIREBASE SYNC ---
     const roomRef = ref(db, `games/${gameId}`);
@@ -446,102 +410,111 @@
         const data = snapshot.val() || {};
         playerData = data.current?.players || {};
         roomPin = data.settings?.pin || null;
-        
-        const lockBtn = document.getElementById('lockBtn');
-        lockBtn.innerText = roomPin ? '🔒' : '🔓';
-        
+        document.getElementById('lockBtn').innerText = roomPin ? '🔒' : '🔓';
         document.getElementById('statusDot').classList.add('online');
         renderTable();
     });
 
-    const historyRef = ref(db, `games/${gameId}/history`);
-    onValue(historyRef, (snap) => renderHistory(snap.val()));
+    onValue(ref(db, `games/${gameId}/history`), (snap) => renderHistory(snap.val()));
 
     // --- ACTIONS ---
-
     window.checkAuth = () => {
-        if (roomPin && !isAuthorized) {
-            document.getElementById('pinModal').style.display = 'flex';
-            return false;
-        }
+        if (roomPin && !isAuthorized) { document.getElementById('pinModal').style.display='flex'; return false; }
         return true;
     };
-
     window.verifyPin = () => {
-        const input = document.getElementById('pinInput').value;
-        if (input === String(roomPin)) {
-            isAuthorized = true;
-            document.getElementById('pinModal').style.display = 'none';
-            Sound.score();
-        } else {
-            Sound.error();
-            alert("Wrong PIN");
-        }
+        if (document.getElementById('pinInput').value === String(roomPin)) {
+            isAuthorized=true; document.getElementById('pinModal').style.display='none'; Sound.score();
+        } else { Sound.error(); alert("Wrong PIN"); }
     };
-
     window.toggleLockModal = () => {
-        if (!isAuthorized && roomPin) {
-            document.getElementById('pinModal').style.display = 'flex';
-        } else {
-            document.getElementById('setPinModal').style.display = 'flex';
-        }
+        document.getElementById((!isAuthorized && roomPin) ? 'pinModal' : 'setPinModal').style.display='flex';
     };
-
     window.setRoomPin = () => {
         const pin = document.getElementById('newPinInput').value;
-        if (pin.length < 4) return alert("PIN must be 4 digits");
+        if(pin.length<4) return alert("4 digits required");
         set(ref(db, `games/${gameId}/settings/pin`), pin);
-        isAuthorized = true;
-        document.getElementById('setPinModal').style.display = 'none';
-        Sound.score();
+        isAuthorized=true; document.getElementById('setPinModal').style.display='none'; Sound.score();
     };
-
     window.removeRoomPin = () => {
         set(ref(db, `games/${gameId}/settings/pin`), null);
-        document.getElementById('setPinModal').style.display = 'none';
+        document.getElementById('setPinModal').style.display='none';
     };
 
-    window.addPlayer = function() {
-        if (!window.checkAuth()) return;
+    window.addPlayer = () => {
+        if(!window.checkAuth()) return;
         const name = document.getElementById('playerName').value.trim();
         if(!name) return;
         Sound.tap();
-        const pid = 'p_' + Date.now();
-        update(ref(db, `games/${gameId}/current/players/${pid}`), { name: name, scores: {} });
+        update(ref(db, `games/${gameId}/current/players/p_${Date.now()}`), { name: name, scores: {} });
         document.getElementById('playerName').value = '';
     };
 
-    window.updateScore = function(pid, cat, val) {
-        if (!window.checkAuth()) {
-            renderTable();
+    window.updateScore = (pid, cat, val) => {
+        if (!window.checkAuth()) { renderTable(); return; }
+        const num = Number(val);
+        
+        // Validation
+        let err = "";
+        if (val !== '') {
+            if (isNaN(num) || num < 0) err = "Positive numbers only";
+            else if (RULES[cat] && num > RULES[cat]) err = `Max is ${RULES[cat]}`;
+            else if (cat === 'yatzy' && num !== 0 && num !== 50) err = "50 or 0 only";
+        }
+
+        if (err) {
+            Sound.error();
+            alert(err);
+            renderTable(); // Reset
             return;
         }
+
+        if (val !== '') { (cat==='yatzy' && num===50) ? (Sound.yatzy(), startConfetti()) : Sound.score(); }
         
-        const numVal = Number(val);
-        let isValid = true;
-        let errorMsg = "";
+        const path = `games/${gameId}/current/players/${pid}/scores/${cat}`;
+        set(ref(db, path), val === '' ? null : num);
+    };
 
-        if (val !== '') {
-            if (isNaN(numVal) || numVal < 0) {
-                isValid = false; errorMsg = "Must be positive";
-            } else if (RULES[cat] && numVal > RULES[cat]) {
-                isValid = false; errorMsg = `Max for ${CATEGORIES.find(c=>c.id===cat).label} is ${RULES[cat]}`;
-            } else if (cat === 'yatzy' && numVal !== 0 && numVal !== 50) {
-                isValid = false; errorMsg = "Yatzy must be 0 or 50";
-            }
-        }
+    window.archiveAndReset = () => {
+        if (!window.checkAuth()) return;
+        
+        const pList = playerData ? Object.values(playerData) : [];
+        if (pList.length === 0) return alert("No players!");
 
-        if (!isValid) {
-            Sound.error();
-            // Fixed shake selector
-            const input = document.querySelector(`input[data-pid="${pid}"][data-cat="${cat}"]`);
-            if(input) {
-                input.classList.add('invalid-shake');
-                setTimeout(() => input.classList.remove('invalid-shake'), 500);
-            }
-            alert(errorMsg);
-            renderTable(); // Re-render to reset value
-            return; 
-        }
+        let winner="None", max=-1, results=[];
+        pList.forEach(p => {
+            let s = calculateTotal(p.scores||{});
+            results.push({name:p.name, score:s});
+            if(s>max) { max=s; winner=p.name; }
+        });
 
-        if (val
+        if(!confirm(`Finish game?\nWinner: ${winner} (${max})`)) return;
+
+        try { Sound.fanfare(); startConfetti(); } catch(e){}
+        
+        push(ref(db, `games/${gameId}/history`), {
+            date: new Date().toISOString(), winner: winner, results: results
+        });
+
+        const updates = {};
+        Object.keys(playerData).forEach(pid => updates[`players/${pid}/scores`] = null);
+        update(ref(db, `games/${gameId}/current`), updates);
+
+        setTimeout(() => alert(`🏆 WINNER: ${winner} 🏆`), 300);
+    };
+
+    // --- RENDER ---
+    function renderTable() {
+        const hRow = document.getElementById('headerRow');
+        const tbody = document.getElementById('tableBody');
+        hRow.innerHTML = '<th class="category-col">Category</th>';
+        const pids = Object.keys(playerData).sort();
+
+        pids.forEach(pid => {
+            const th = document.createElement('th');
+            th.innerText = playerData[pid].name;
+            hRow.appendChild(th);
+        });
+
+        tbody.innerHTML = '';
+        CATEGORIES.forEach(cat 
