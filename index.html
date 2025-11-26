@@ -3,27 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yatzy Torrent</title>
+    <title>Yatzy Live (Cloud)</title>
     <style>
-        :root { --bg: #1a1a1a; --text: #e0e0e0; --accent: #4caf50; --border: #333; }
-        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 10px; display:flex; flex-direction:column; align-items:center; }
-        .controls { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 20px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center; width:100%; max-width:600px; }
-        button { background: var(--accent); color: white; border: none; padding: 10px 16px; border-radius: 4px; font-weight: bold; }
-        input[type="text"] { padding: 10px; border-radius: 4px; border: 1px solid #555; background: #2a2a2a; color: white; flex-grow: 1; }
-        .score-container { overflow-x: auto; width: 100%; border-radius: 8px; background: #252525; border: 1px solid var(--border); }
+        :root { --bg: #1a1a1a; --text: #e0e0e0; --accent: #2196F3; --border: #333; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            padding: 10px; 
+            display:flex; 
+            flex-direction:column; 
+            align-items:center; 
+            margin: 0;
+        }
+        .controls { 
+            background: #252525; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            display:flex; 
+            gap:10px; 
+            flex-wrap:wrap; 
+            justify-content:center; 
+            width:100%; 
+            max-width:600px; 
+            border: 1px solid var(--border);
+        }
+        button { 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            font-size: 1rem; 
+            cursor: pointer;
+        }
+        button:active { transform: scale(0.98); }
+        input[type="text"] { 
+            padding: 12px; 
+            border-radius: 6px; 
+            border: 1px solid #555; 
+            background: #2a2a2a; 
+            color: white; 
+            flex-grow: 1; 
+            font-size: 1rem; 
+        }
+        .score-container { 
+            overflow-x: auto; 
+            width: 100%; 
+            max-width: 800px;
+            border-radius: 8px; 
+            background: #252525; 
+            border: 1px solid var(--border); 
+        }
         table { width: 100%; border-collapse: collapse; min-width: 300px; }
-        th, td { border: 1px solid #444; padding: 8px; text-align: center; white-space: nowrap; }
-        .category-label { text-align: left; font-weight: bold; padding-left: 10px; background: #2a2a2a; position: sticky; left: 0; width: 110px; border-right: 2px solid #555; }
+        th, td { border: 1px solid #444; padding: 10px 5px; text-align: center; white-space: nowrap; }
+        .category-label { 
+            text-align: left; 
+            font-weight: bold; 
+            padding-left: 10px; 
+            background: #2a2a2a; 
+            position: sticky; 
+            left: 0; 
+            width: 110px; 
+            border-right: 2px solid #555; 
+            z-index: 10;
+        }
         .subtotal-row { background: #2c3e50; font-weight: bold; }
         .total-row { background: #1b5e20; font-weight: bold; }
-        input.score-input { width: 100%; min-width: 40px; background: transparent; border: none; color: white; text-align: center; font-size: 1.1em; }
+        input.score-input { 
+            width: 100%; 
+            min-width: 40px; 
+            background: transparent; 
+            border: none; 
+            color: white; 
+            text-align: center; 
+            font-size: 1.1em; 
+        }
         .status-bar { margin-top: 15px; font-size: 0.9em; color: #888; text-align: center; }
-        .live { color: #4caf50; font-weight: bold; }
+        .online { color: #4caf50; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>🎲 Yatzy (Torrent Mode)</h1>
+    <h1>🎲 Yatzy Cloud</h1>
 
     <div class="controls">
         <input type="text" id="playerName" placeholder="Enter Name">
@@ -40,25 +104,39 @@
 
     <div class="status-bar">
         Room: <strong id="roomIdDisplay">...</strong><br>
-        <span id="statusText">Connecting via Torrent...</span>
+        Status: <span id="statusText">Connecting...</span>
     </div>
 
 <script type="module">
-    // IMPORT TRYSTERO (Torrent Library)
-    import { joinRoom } from 'https://cdn.skypack.dev/trystero/torrent';
+    // Import from Firebase SDK v12.6.0
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set, update } 
+           from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
-    // 1. SETUP GAME
+    // --- YOUR CONFIGURATION ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyDu86vB2-zePebM5oL_onW5E5Aiszgzh84",
+        authDomain: "yatzy-eb87c.firebaseapp.com",
+        databaseURL: "https://yatzy-eb87c-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "yatzy-eb87c",
+        storageBucket: "yatzy-eb87c.firebasestorage.app",
+        messagingSenderId: "720938944178",
+        appId: "1:720938944178:web:de183e0ca6a116b915ebab",
+        measurementId: "G-6FCGWX4R4L"
+    };
+    // --------------------------
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Get Room ID
     let gameId = window.location.hash.replace('#', '');
-    if (!gameId) { gameId = Math.random().toString(36).substr(2, 6); window.location.hash = gameId; }
+    if (!gameId) { 
+        gameId = Math.random().toString(36).substr(2, 6); 
+        window.location.hash = gameId; 
+    }
     document.getElementById('roomIdDisplay').innerText = gameId;
-
-    // Connect to room (AppId + RoomId)
-    const config = { appId: 'yatzy-live-v1' };
-    const room = joinRoom(config, gameId);
-    
-    // Actions
-    const [sendData, getScore] = room.makeAction('scoreUpdate');
-    const [sendPlayer, getPlayer] = room.makeAction('newPlayer');
 
     let playerData = {};
     const categories = [
@@ -71,78 +149,87 @@
         { id: 'total', label: 'TOTAL', type: 'calc' }
     ];
 
-    // 2. NETWORK LISTENERS
-    room.onPeerJoin(peerId => {
-        document.getElementById('statusText').innerHTML = "<span class='live'>● Peer Joined! syncing...</span>";
-        // Send them my full state so they are up to date
-        Object.keys(playerData).forEach(pid => sendPlayer(playerData[pid]));
-    });
-
-    room.onPeerLeave(() => {
-        document.getElementById('statusText').innerText = "Peer left.";
-    });
-
-    getPlayer((data) => {
-        playerData[data.id] = data;
-        renderTable();
-    });
-
-    getScore((data) => {
-        if(playerData[data.pid]) {
-            playerData[data.pid][data.cat] = Number(data.val);
+    // --- LISTENERS ---
+    const roomRef = ref(db, 'games/' + gameId);
+    
+    // Listen for ANY change in this room
+    onValue(roomRef, (snapshot) => {
+        const data = snapshot.val();
+        document.getElementById('statusText').innerHTML = "<span class='online'>● Online & Synced</span>";
+        if (data) {
+            playerData = data;
+            renderTable();
+        } else {
+            // Room is empty, just render empty table
+            playerData = {};
             renderTable();
         }
     });
 
-    // 3. UI FUNCTIONS
+    // --- ACTIONS ---
     window.addPlayer = function() {
         const name = document.getElementById('playerName').value;
-        if(!name) return alert("Name?");
+        if(!name) return alert("Enter a name first!");
+        
+        // Create a unique ID for this player
         const pid = 'p_' + Date.now();
-        const p = { id: pid, name: name };
-        playerData[pid] = p;
-        sendPlayer(p); // Broadcast
-        renderTable();
+        
+        // Save initial state to Firebase
+        update(ref(db, `games/${gameId}/${pid}`), {
+            name: name,
+            ones:0, twos:0, threes:0, fours:0, fives:0, sixes:0
+        });
         document.getElementById('playerName').value = '';
     }
 
     window.updateScore = function(pid, cat, val) {
         if(val === '') val = 0;
-        playerData[pid][cat] = Number(val);
-        // Broadcast
-        sendData({ pid: pid, cat: cat, val: val });
-        renderTable(); // Re-render to update sums
+        // Directly update the database
+        set(ref(db, `games/${gameId}/${pid}/${cat}`), Number(val));
     }
 
-    window.copyLink = function() { navigator.clipboard.writeText(window.location.href); alert("Copied!"); }
+    window.copyLink = function() { 
+        navigator.clipboard.writeText(window.location.href); 
+        alert("Link copied! Anyone with this link can join."); 
+    }
 
-    // 4. RENDER LOGIC
+    // --- RENDERING ---
     function renderTable() {
         const hRow = document.getElementById('headerRow');
+        const tbody = document.getElementById('tableBody');
+        
+        // Reset Header
         hRow.innerHTML = '<th class="category-label">Category</th>';
+        tbody.innerHTML = '';
+
         const pids = Object.keys(playerData).sort();
+        
+        // Build Header Columns
         pids.forEach(pid => {
             const th = document.createElement('th');
             th.innerText = playerData[pid].name;
             hRow.appendChild(th);
         });
 
-        const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = '';
+        // Build Rows
         categories.forEach(cat => {
             const tr = document.createElement('tr');
             if(cat.id === 'sum' || cat.id === 'bonus') tr.className = 'subtotal-row';
             if(cat.id === 'total') tr.className = 'total-row';
             
+            // Label Column
             tr.innerHTML = `<td class="category-label">${cat.label}</td>`;
             
+            // Player Columns
             pids.forEach(pid => {
                 const td = document.createElement('td');
                 const p = playerData[pid];
+                
                 if(cat.type === 'calc') {
                     td.innerText = calculate(p, cat.id);
                 } else {
-                    const val = p[cat.id] || '';
+                    const val = (p[cat.id] !== undefined && p[cat.id] !== 0) ? p[cat.id] : '';
+                    // Input field updates Firebase on change
                     td.innerHTML = `<input class="score-input" type="tel" value="${val}" onchange="updateScore('${pid}','${cat.id}',this.value)">`;
                 }
                 tr.appendChild(td);
@@ -155,14 +242,18 @@
         const upper = ['ones','twos','threes','fours','fives','sixes'];
         let sum = 0;
         upper.forEach(k => sum += Number(p[k]||0));
+        
         if(type==='sum') return sum;
         if(type==='bonus') return sum >= 63 ? 50 : 0;
         if(type==='total') {
             let t = sum + (sum>=63?50:0);
-            ['pair','twoPair','threeKind','fourKind','smallStr','largeStr','fullHouse','chance','yatzy'].forEach(k=>t+=Number(p[k]||0));
+            ['pair','twoPair','threeKind','fourKind','smallStr','largeStr','fullHouse','chance','yatzy']
+                .forEach(k => t += Number(p[k]||0));
             return t;
         }
+        return 0;
     }
 </script>
 </body>
 </html>
+
