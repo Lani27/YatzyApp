@@ -15,6 +15,7 @@
             --border: #333;
             --highlight: #2c3e50;
             --shadow-color: rgba(0,0,0,0.5);
+            --danger: #f44336;
         }
 
         [data-theme="light"] {
@@ -71,11 +72,15 @@
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
         }
 
-        .theme-toggle {
+        .header-actions { display: flex; gap: 10px; }
+
+        .icon-btn {
             background: none; border: 1px solid var(--border);
-            color: var(--text); padding: 5px 10px; border-radius: 20px;
+            color: var(--text); padding: 5px 10px; border-radius: 8px;
             cursor: pointer; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center;
         }
+        .icon-btn.active { background-color: var(--highlight); border-color: var(--accent); }
 
         .controls-area {
             background: var(--surface);
@@ -108,7 +113,7 @@
         button.secondary { background-color: #555; }
         button.danger { background-color: #d32f2f; }
 
-        input[type="text"] {
+        input[type="text"], input[type="password"] {
             padding: 10px;
             border-radius: 8px;
             border: 1px solid var(--border);
@@ -130,10 +135,7 @@
             position: relative;
         }
 
-        table {
-            border-collapse: collapse;
-            min-width: 100%;
-        }
+        table { border-collapse: collapse; min-width: 100%; }
 
         th, td {
             padding: 8px;
@@ -151,16 +153,8 @@
             user-select: none;
         }
         
-        /* Player Highlight Styles */
         th.active-player, td.active-col {
             background-color: var(--highlight) !important;
-            position: relative;
-        }
-        th.active-player::after {
-            content: "▼";
-            display: block;
-            font-size: 0.7em;
-            color: var(--accent);
         }
 
         /* Sticky First Column */
@@ -171,13 +165,28 @@
             z-index: 30;
             text-align: left;
             font-weight: bold;
-            width: 110px;
+            width: 130px;
             border-right: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         
-        /* Add shadow to sticky col when scrolling */
         .table-wrapper.scrolled .category-col {
             box-shadow: 2px 0 5px var(--shadow-color);
+        }
+
+        .help-icon {
+            font-size: 0.8em;
+            color: var(--text-dim);
+            cursor: help;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 18px; height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 5px;
         }
 
         .subtotal-row { background-color: rgba(255, 255, 255, 0.05); font-weight: bold; color: var(--text-dim); }
@@ -192,21 +201,47 @@
             font-size: 1.1em;
             font-weight: 500;
             padding: 5px 0;
+            transition: color 0.2s, background 0.2s;
         }
-        input.score-input:focus {
-            background: rgba(255,255,255,0.1);
-            outline: none;
-            border-radius: 4px;
+        input.score-input:focus { background: rgba(255,255,255,0.1); outline: none; border-radius: 4px; }
+        
+        /* Validation Shake */
+        input.invalid-shake {
+            color: #f44336;
+            border-bottom: 2px solid #f44336;
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
         }
-        /* Invalid input shake */
-        input.invalid { color: #f44336; text-decoration: line-through; }
 
-        /* --- HISTORY & INFO --- */
-        .history-section {
-            margin-top: 30px;
-            width: 100%;
-            max-width: 600px;
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
         }
+
+        /* --- MODALS --- */
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none; justify-content: center; align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(3px);
+        }
+        .modal {
+            background: var(--surface);
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .modal h3 { margin-top: 0; }
+        .rule-desc { text-align: left; line-height: 1.5; margin: 15px 0; }
+
+        /* --- HISTORY --- */
+        .history-section { margin-top: 30px; width: 100%; max-width: 600px; }
         .history-card {
             background: var(--surface);
             padding: 10px 15px;
@@ -224,14 +259,6 @@
             margin-right: 5px;
         }
 
-        .room-info {
-            margin-top: 10px;
-            font-size: 0.8em;
-            color: var(--text-dim);
-            text-align: center;
-        }
-
-        /* Confetti Canvas */
         #confetti {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100%;
@@ -247,16 +274,20 @@
     <header>
         <h1>
             <span id="statusDot" class="status-dot"></span> 
-            Yatzy Ultimate
+            Yatzy
         </h1>
-        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️</button>
+        <div class="header-actions">
+            <button class="icon-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
+            <button class="icon-btn" id="lockBtn" onclick="toggleLockModal()">🔓</button>
+            <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
+        </div>
     </header>
 
     <div class="controls-area">
         <input type="text" id="playerName" placeholder="Enter Player Name">
         <button onclick="addPlayer()">+ Add Player</button>
         <button class="secondary" onclick="copyLink()">🔗 Share</button>
-        <button class="danger" onclick="archiveAndReset()">🏆 Finish & New Game</button>
+        <button class="danger" onclick="archiveAndReset()">🏆 Finish</button>
     </div>
 
     <div class="table-wrapper" id="tableWrapper">
@@ -273,19 +304,49 @@
         </table>
     </div>
 
-    <div class="room-info">
-        Room ID: <strong id="roomIdDisplay">...</strong>
-    </div>
-
     <div class="history-section">
-        <h3>📜 Game History</h3>
+        <h3>📜 History</h3>
         <div id="historyList"></div>
     </div>
 
-<!-- Firebase & App Logic -->
+    <!-- Rule Modal -->
+    <div id="ruleModal" class="modal-backdrop" onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal">
+            <h3 id="ruleTitle">Rule</h3>
+            <div id="ruleText" class="rule-desc"></div>
+            <button onclick="document.getElementById('ruleModal').style.display='none'">Got it</button>
+        </div>
+    </div>
+
+    <!-- PIN Modal -->
+    <div id="pinModal" class="modal-backdrop">
+        <div class="modal">
+            <h3>🔒 Room Locked</h3>
+            <p>Please enter the PIN to edit scores.</p>
+            <input type="password" id="pinInput" placeholder="Enter PIN" style="width: 100%; margin-bottom: 10px;">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="verifyPin()">Unlock</button>
+                <button class="secondary" onclick="document.getElementById('pinModal').style.display='none'">View Only</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Set PIN Modal -->
+    <div id="setPinModal" class="modal-backdrop">
+        <div class="modal">
+            <h3>🔐 Set Room PIN</h3>
+            <p>Protect this scoreboard from strangers?</p>
+            <input type="text" id="newPinInput" placeholder="Create 4-digit PIN" maxlength="4" style="width: 100%; margin-bottom: 10px;">
+            <button onclick="setRoomPin()">Set Lock</button>
+            <br><br>
+            <button class="secondary" style="font-size: 0.8em;" onclick="removeRoomPin()">Remove Lock</button>
+            <button class="secondary" style="font-size: 0.8em;" onclick="document.getElementById('setPinModal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-    import { getDatabase, ref, onValue, set, update, push, remove } 
+    import { getDatabase, ref, onValue, set, update, push } 
            from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
     // --- CONFIGURATION ---
@@ -303,291 +364,184 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    // --- GAME RULES ---
+    const RULES = {
+        ones: 5, twos: 10, threes: 15, fours: 20, fives: 25, sixes: 30,
+        pair: 12, twoPair: 22, threeKind: 30, fourKind: 30,
+        smallStr: 30, largeStr: 40, fullHouse: 28, chance: 30, yatzy: 50
+    };
+
+    const CATEGORIES = [
+        { id: 'ones', label: 'Ones', rule: 'Sum of all ones rolled. Max 5.' },
+        { id: 'twos', label: 'Twos', rule: 'Sum of all twos rolled. Max 10.' },
+        { id: 'threes', label: 'Threes', rule: 'Sum of all threes rolled. Max 15.' },
+        { id: 'fours', label: 'Fours', rule: 'Sum of all fours rolled. Max 20.' },
+        { id: 'fives', label: 'Fives', rule: 'Sum of all fives rolled. Max 25.' },
+        { id: 'sixes', label: 'Sixes', rule: 'Sum of all sixes rolled. Max 30.' },
+        { id: 'sum', label: 'Sum', type: 'calc' },
+        { id: 'bonus', label: 'Bonus', type: 'calc', rule: 'If Sum ≥ 63, score 50. Else 0.' },
+        { id: 'pair', label: 'One Pair', rule: 'Two dice of the same number. Score sum of those two. Max 12.' },
+        { id: 'twoPair', label: 'Two Pairs', rule: 'Two different pairs. Score sum of dice. Max 22.' },
+        { id: 'threeKind', label: '3 of a Kind', rule: 'Three dice same number. Score sum of those three.' },
+        { id: 'fourKind', label: '4 of a Kind', rule: 'Four dice same number. Score sum of those four.' },
+        { id: 'smallStr', label: 'Small Str.', rule: 'Sequence of 4 (e.g. 1-2-3-4-5). Score: 15 (Standard) or 30 (Classic).' },
+        { id: 'largeStr', label: 'Large Str.', rule: 'Sequence of 5 (e.g. 2-3-4-5-6). Score: 20 (Standard) or 40 (Classic).' },
+        { id: 'fullHouse', label: 'Full House', rule: 'Three of one number + Two of another. Score sum of all dice (or 25).' },
+        { id: 'chance', label: 'Chance', rule: 'Sum of all 5 dice. Use when nothing else fits. Max 30.' },
+        { id: 'yatzy', label: 'Yatzy', rule: 'All 5 dice the same. Score: 50. (Must be 50 or 0).' },
+        { id: 'total', label: 'TOTAL', type: 'calc' }
+    ];
+
     // --- STATE ---
     let gameId = window.location.hash.replace('#', '');
     if (!gameId) { gameId = Math.random().toString(36).substr(2, 6); window.location.hash = gameId; }
-    document.getElementById('roomIdDisplay').innerText = gameId;
-
+    
     let playerData = {};
-    let activePlayerId = null; // For highlighting
+    let roomPin = null;
+    let isAuthorized = false;
+    let soundEnabled = true;
 
-    // Game Rules (Max possible scores per category for validation)
-    const RULES = {
-        ones: 5, twos: 10, threes: 15, fours: 20, fives: 25, sixes: 30,
-        pair: 12, twoPair: 24, threeKind: 30, fourKind: 30,
-        smallStr: 30, largeStr: 40, fullHouse: 25, chance: 30, yatzy: 50
+    // --- SOUND ENGINE ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+
+    const Sound = {
+        playTone: (freq, type, duration) => {
+            if (!soundEnabled || audioCtx.state === 'suspended') audioCtx.resume();
+            if (!soundEnabled) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.value = freq;
+            osc.type = type;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            osc.stop(audioCtx.currentTime + duration);
+        },
+        tap: () => Sound.playTone(600, 'sine', 0.1),
+        score: () => {
+            Sound.playTone(400, 'sine', 0.1);
+            setTimeout(() => Sound.playTone(600, 'sine', 0.2), 100);
+        },
+        yatzy: () => {
+            [523, 659, 783, 1046, 1568].forEach((f, i) => 
+                setTimeout(() => Sound.playTone(f, 'triangle', 0.15), i * 80)
+            );
+        },
+        error: () => Sound.playTone(150, 'sawtooth', 0.3),
+        fanfare: () => {
+            [400, 500, 600, 800].forEach((f, i) => setTimeout(() => Sound.playTone(f, 'square', 0.2), i * 150));
+        }
     };
 
-    const categories = [
-        { id: 'ones', label: 'Ones' }, { id: 'twos', label: 'Twos' }, { id: 'threes', label: 'Threes' },
-        { id: 'fours', label: 'Fours' }, { id: 'fives', label: 'Fives' }, { id: 'sixes', label: 'Sixes' },
-        { id: 'sum', label: 'Sum', type: 'calc' }, { id: 'bonus', label: 'Bonus', type: 'calc' },
-        { id: 'pair', label: 'One Pair' }, { id: 'twoPair', label: 'Two Pairs' }, 
-        { id: 'threeKind', label: '3 of a Kind' }, { id: 'fourKind', label: '4 of a Kind' }, 
-        { id: 'smallStr', label: 'Sm. Straight' }, { id: 'largeStr', label: 'Lg. Straight' },
-        { id: 'fullHouse', label: 'Full House' }, { id: 'chance', label: 'Chance' }, 
-        { id: 'yatzy', label: 'Yatzy' }, { id: 'total', label: 'TOTAL', type: 'calc' }
-    ];
+    window.toggleSound = () => {
+        soundEnabled = !soundEnabled;
+        document.getElementById('soundBtn').innerText = soundEnabled ? '🔊' : '🔇';
+    };
 
-    // --- FIREBASE LISTENERS ---
-    
-    // 1. Listen for Game Data
-    const roomRef = ref(db, `games/${gameId}/current`);
+    // --- FIREBASE SYNC ---
+    const roomRef = ref(db, `games/${gameId}`);
     onValue(roomRef, (snapshot) => {
         const data = snapshot.val() || {};
-        playerData = data.players || {};
-        activePlayerId = data.activePlayer || null;
+        playerData = data.current?.players || {};
+        roomPin = data.settings?.pin || null;
+        
+        const lockBtn = document.getElementById('lockBtn');
+        lockBtn.innerText = roomPin ? '🔒' : '🔓';
         
         document.getElementById('statusDot').classList.add('online');
         renderTable();
     });
 
-    // 2. Listen for History
     const historyRef = ref(db, `games/${gameId}/history`);
-    onValue(historyRef, (snapshot) => {
-        renderHistory(snapshot.val());
-    });
+    onValue(historyRef, (snap) => renderHistory(snap.val()));
 
     // --- ACTIONS ---
 
+    window.checkAuth = () => {
+        if (roomPin && !isAuthorized) {
+            document.getElementById('pinModal').style.display = 'flex';
+            return false;
+        }
+        return true;
+    };
+
+    window.verifyPin = () => {
+        const input = document.getElementById('pinInput').value;
+        if (input === String(roomPin)) {
+            isAuthorized = true;
+            document.getElementById('pinModal').style.display = 'none';
+            Sound.score();
+        } else {
+            Sound.error();
+            alert("Wrong PIN");
+        }
+    };
+
+    window.toggleLockModal = () => {
+        if (!isAuthorized && roomPin) {
+            document.getElementById('pinModal').style.display = 'flex';
+        } else {
+            document.getElementById('setPinModal').style.display = 'flex';
+        }
+    };
+
+    window.setRoomPin = () => {
+        const pin = document.getElementById('newPinInput').value;
+        if (pin.length < 4) return alert("PIN must be 4 digits");
+        set(ref(db, `games/${gameId}/settings/pin`), pin);
+        isAuthorized = true;
+        document.getElementById('setPinModal').style.display = 'none';
+        Sound.score();
+    };
+
+    window.removeRoomPin = () => {
+        set(ref(db, `games/${gameId}/settings/pin`), null);
+        document.getElementById('setPinModal').style.display = 'none';
+    };
+
     window.addPlayer = function() {
+        if (!window.checkAuth()) return;
         const name = document.getElementById('playerName').value.trim();
-        if(!name) return alert("Enter a name!");
+        if(!name) return;
+        Sound.tap();
         const pid = 'p_' + Date.now();
-        
-        update(ref(db, `games/${gameId}/current/players/${pid}`), {
-            name: name, scores: {}
-        });
+        update(ref(db, `games/${gameId}/current/players/${pid}`), { name: name, scores: {} });
         document.getElementById('playerName').value = '';
-    }
+    };
 
     window.updateScore = function(pid, cat, val) {
-        const numVal = Number(val);
-        
-        // Validation
-        if (val !== '' && (isNaN(numVal) || numVal < 0 || (RULES[cat] && numVal > RULES[cat]))) {
-            // Visual error feedback handled in render, but let's allow correction
-            // We save it, but UI will show it's weird if needed. 
-            // Strictly limiting here:
-            if(RULES[cat] && numVal > RULES[cat]) {
-                alert(`Max score for ${cat} is ${RULES[cat]}`);
-                renderTable(); // Reset UI to previous state
-                return;
-            }
-        }
-
-        if(val === '') {
-            set(ref(db, `games/${gameId}/current/players/${pid}/scores/${cat}`), null);
-        } else {
-            set(ref(db, `games/${gameId}/current/players/${pid}/scores/${cat}`), numVal);
-        }
-    }
-
-    window.setActivePlayer = function(pid) {
-        update(ref(db, `games/${gameId}/current`), { activePlayer: pid });
-    }
-
-    window.archiveAndReset = function() {
-        if(Object.keys(playerData).length === 0) return;
-        if(!confirm("Finish game, announce winner, and start new?")) return;
-
-        // 1. Calculate Winner
-        let winnerName = "No one";
-        let maxScore = -1;
-        let results = [];
-
-        Object.keys(playerData).forEach(pid => {
-            const p = playerData[pid];
-            const score = calculateScore(p.scores || {});
-            results.push({ name: p.name, score: score });
-            if(score > maxScore) {
-                maxScore = score;
-                winnerName = p.name;
-            }
-        });
-
-        // 2. Save to History
-        push(ref(db, `games/${gameId}/history`), {
-            date: new Date().toISOString(),
-            winner: winnerName,
-            results: results
-        });
-
-        // 3. Confetti
-        startConfetti();
-
-        // 4. Reset Scores (Keep Players)
-        const updates = {};
-        Object.keys(playerData).forEach(pid => {
-            updates[`players/${pid}/scores`] = null;
-        });
-        updates['activePlayer'] = null;
-        
-        update(ref(db, `games/${gameId}/current`), updates);
-    }
-
-    window.copyLink = function() {
-        navigator.clipboard.writeText(window.location.href);
-        alert("Link copied!");
-    }
-
-    // --- RENDERING ---
-
-    function renderTable() {
-        const hRow = document.getElementById('headerRow');
-        const tbody = document.getElementById('tableBody');
-        
-        // Headers
-        hRow.innerHTML = '<th class="category-col">Category</th>';
-        const pids = Object.keys(playerData).sort();
-
-        pids.forEach(pid => {
-            const p = playerData[pid];
-            const isActive = (pid === activePlayerId);
-            const th = document.createElement('th');
-            th.innerText = p.name;
-            if(isActive) th.className = 'active-player';
-            th.onclick = () => setActivePlayer(pid);
-            hRow.appendChild(th);
-        });
-
-        // Body
-        tbody.innerHTML = '';
-        categories.forEach(cat => {
-            const tr = document.createElement('tr');
-            if(cat.id === 'sum' || cat.id === 'bonus') tr.className = 'subtotal-row';
-            if(cat.id === 'total') tr.className = 'total-row';
-
-            // Label
-            const tdLabel = document.createElement('td');
-            tdLabel.className = 'category-col';
-            tdLabel.innerText = cat.label;
-            tr.appendChild(tdLabel);
-
-            // Scores
-            pids.forEach(pid => {
-                const td = document.createElement('td');
-                const isActive = (pid === activePlayerId);
-                if(isActive) td.className = 'active-col';
-
-                const p = playerData[pid];
-                const scores = p.scores || {};
-
-                if(cat.type === 'calc') {
-                    // Calculated Field
-                    const val = calculateField(cat.id, scores);
-                    td.innerText = val;
-                } else {
-                    // Input Field
-                    const val = (scores[cat.id] !== undefined) ? scores[cat.id] : '';
-                    const input = document.createElement('input');
-                    input.className = 'score-input';
-                    input.type = 'tel';
-                    input.value = val;
-                    input.placeholder = '-';
-                    
-                    // Simple validation styling
-                    if(RULES[cat.id] && val > RULES[cat.id]) input.classList.add('invalid');
-
-                    input.onchange = (e) => updateScore(pid, cat.id, e.target.value);
-                    td.appendChild(input);
-                }
-                tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
-        });
-    }
-
-    function calculateField(type, scores) {
-        const upper = ['ones','twos','threes','fours','fives','sixes'];
-        let sum = 0;
-        upper.forEach(k => sum += Number(scores[k]||0));
-
-        if(type === 'sum') return sum;
-        if(type === 'bonus') return sum >= 63 ? 50 : 0;
-        if(type === 'total') {
-            let t = sum + (sum >= 63 ? 50 : 0);
-            ['pair','twoPair','threeKind','fourKind','smallStr','largeStr','fullHouse','chance','yatzy']
-                .forEach(k => t += Number(scores[k]||0));
-            return t;
-        }
-        return 0;
-    }
-
-    // Helper for calculating total easily
-    function calculateScore(scores) {
-        return calculateField('total', scores);
-    }
-
-    function renderHistory(historyData) {
-        const list = document.getElementById('historyList');
-        list.innerHTML = '';
-        if(!historyData) {
-            list.innerHTML = '<div style="color:#888; text-align:center;">No games played yet.</div>';
+        if (!window.checkAuth()) {
+            renderTable();
             return;
         }
+        
+        const numVal = Number(val);
+        let isValid = true;
+        let errorMsg = "";
 
-        // Convert object to array and sort by date desc
-        const games = Object.values(historyData).sort((a,b) => new Date(b.date) - new Date(a.date));
-
-        games.forEach(game => {
-            const div = document.createElement('div');
-            div.className = 'history-card';
-            const dateStr = new Date(game.date).toLocaleDateString();
-            div.innerHTML = `
-                <div>
-                    <span class="winner-badge">🏆 ${game.winner}</span>
-                    <span style="color:var(--text-dim)">${dateStr}</span>
-                </div>
-                <div>
-                    <strong>${game.results.find(r => r.name === game.winner)?.score || 0} pts</strong>
-                </div>
-            `;
-            list.appendChild(div);
-        });
-    }
-
-    // --- THEME LOGIC ---
-    window.toggleTheme = function() {
-        const body = document.body;
-        const btn = document.getElementById('themeBtn');
-        if(body.getAttribute('data-theme') === 'light') {
-            body.removeAttribute('data-theme');
-            btn.innerText = '☀️';
-        } else {
-            body.setAttribute('data-theme', 'light');
-            btn.innerText = '🌙';
+        if (val !== '') {
+            if (isNaN(numVal) || numVal < 0) {
+                isValid = false; errorMsg = "Must be positive";
+            } else if (RULES[cat] && numVal > RULES[cat]) {
+                isValid = false; errorMsg = `Max for ${CATEGORIES.find(c=>c.id===cat).label} is ${RULES[cat]}`;
+            } else if (cat === 'yatzy' && numVal !== 0 && numVal !== 50) {
+                isValid = false; errorMsg = "Yatzy must be 0 or 50";
+            }
         }
-    }
 
-    // --- SCROLL SHADOW LOGIC ---
-    const wrapper = document.getElementById('tableWrapper');
-    wrapper.addEventListener('scroll', () => {
-        if(wrapper.scrollLeft > 0) wrapper.classList.add('scrolled');
-        else wrapper.classList.remove('scrolled');
-    });
-
-    // --- CONFETTI LOGIC (Simple Canvas) ---
-    const canvas = document.getElementById("confetti");
-    const ctx = canvas.getContext("2d");
-    let particles = [];
-    
-    function startConfetti() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        particles = [];
-        for(let i=0; i<150; i++) {
-            particles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height - canvas.height,
-                vx: Math.random() * 4 - 2,
-                vy: Math.random() * 4 + 2,
-                color: `hsl(${Math.random()*360}, 100%, 50%)`
-            });
+        if (!isValid) {
+            Sound.error();
+            // Fixed shake selector
+            const input = document.querySelector(`input[data-pid="${pid}"][data-cat="${cat}"]`);
+            if(input) {
+                input.classList.add('invalid-shake');
+                setTimeout(() => input.classList.remove('invalid-shake'), 500);
+            }
+            alert(errorMsg);
+            renderTable(); // Re-render to reset value
+            return; 
         }
-        animateConfetti();
-        setTimeout(() => particles = [], 4000); // Stop after 4s
-    }
 
-    function animateConfetti() {
-        if(particles.length === 0) { ctx
+        if (val
