@@ -82,8 +82,9 @@
     <canvas id="confetti"></canvas>
 
     <header>
-        <h1><span id="statusDot" class="status-dot"></span> Yatzy</h1>
+        <h1><span id="statusDot" class="status-dot"></span> <span id="appTitle">Yatzy</span></h1>
         <div class="header-actions">
+            <button class="icon-btn" id="langBtn" onclick="toggleLanguage()">🇫🇮</button>
             <button class="icon-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
             <button class="icon-btn" id="lockBtn" onclick="toggleLockModal()">🔓</button>
             <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
@@ -198,6 +199,7 @@
                     db = firebase.database();
                     log("Firebase Initialized. Connecting...");
                     setupListeners();
+                    updateLanguage();
                 } catch (e) {
                     log("INIT ERROR: " + e.message, "error");
                 }
@@ -212,7 +214,21 @@
             roomRef.on('value', (snapshot) => {
                 log("Data received", "success");
                 const data = snapshot.val() || {};
-                playerData = data.current?.players || {};
+
+                // Animation Logic for Yatzy
+                const newPlayers = data.current?.players || {};
+                if (playerData) {
+                    Object.keys(newPlayers).forEach(pid => {
+                        const oldScore = playerData[pid]?.scores?.yatzy;
+                        const newScore = newPlayers[pid]?.scores?.yatzy;
+                        if (newScore === 50 && oldScore !== 50) {
+                            Sound.yatzy();
+                            startConfetti();
+                        }
+                    });
+                }
+
+                playerData = newPlayers;
                 roomPin = data.settings?.pin || null;
                 
                 document.getElementById('lockBtn').innerText = roomPin ? '🔒' : '🔓';
@@ -222,30 +238,191 @@
                 log("DB Error: " + err.message, "error");
             });
 
-            db.ref(`games/${gameId}/history`).on('value', (snap) => renderHistory(snap.val()));
+            // History & Winner Animation
+            const historyRef = db.ref(`games/${gameId}/history`);
+            historyRef.on('child_added', (snapshot) => {
+                 const val = snapshot.val();
+                 const finishedTime = new Date(val.date).getTime();
+                 // If game finished within last 30 seconds, animate
+                 if (Date.now() - finishedTime < 30000) {
+                     Sound.fanfare();
+                     startConfetti();
+                     setTimeout(()=>alert(t('winner_alert', {winner: val.winner})), 300);
+                 }
+            });
+            historyRef.on('value', (snap) => renderHistory(snap.val()));
         }
+
+        // --- TRANSLATIONS ---
+        const TRANSLATIONS = {
+            en: {
+                yatzy: "Yatzy",
+                enter_name: "Enter Player Name",
+                add_player: "+ Add Player",
+                share: "🔗 Share",
+                finish: "🏆 Finish",
+                room_id: "Room ID:",
+                loading: "Loading...",
+                category: "Category",
+                history: "📜 History",
+                system_log: "System Log:",
+                rule_title: "Rule",
+                got_it: "Got it",
+                room_locked: "🔒 Room Locked",
+                enter_pin_msg: "Please enter the PIN to edit scores.",
+                enter_pin_ph: "Enter PIN",
+                unlock: "Unlock",
+                view_only: "View Only",
+                set_pin_title: "🔐 Set Room PIN",
+                protect_msg: "Protect this scoreboard?",
+                create_pin_ph: "Create 4-digit PIN",
+                set_lock: "Set Lock",
+                remove_lock: "Remove Lock",
+                cancel: "Cancel",
+                link_copied: "Link copied!",
+                no_players: "No players",
+                finish_confirm: "Finish game?\nWinner: {winner} ({score})",
+                winner_alert: "🏆 WINNER: {winner} 🏆",
+                positive_only: "Positive only",
+                max_is: "Max is {max}",
+                val_50_or_0: "50 or 0",
+                min_4_digits: "Min 4 digits",
+                unlocked: "Unlocked!",
+                incorrect_pin: "Incorrect PIN",
+                ones: "Ones", ones_rule: "Sum of ones. Max 5.",
+                twos: "Twos", twos_rule: "Sum of twos. Max 10.",
+                threes: "Threes", threes_rule: "Sum of threes. Max 15.",
+                fours: "Fours", fours_rule: "Sum of fours. Max 20.",
+                fives: "Fives", fives_rule: "Sum of fives. Max 25.",
+                sixes: "Sixes", sixes_rule: "Sum of sixes. Max 30.",
+                sum: "Sum",
+                bonus: "Bonus", bonus_rule: "If Sum ≥ 63, score 50.",
+                pair: "One Pair", pair_rule: "Sum of two same dice.",
+                twoPair: "Two Pairs", twoPair_rule: "Sum of two different pairs.",
+                threeKind: "3 of a Kind", threeKind_rule: "Sum of three same dice.",
+                fourKind: "4 of a Kind", fourKind_rule: "Sum of four same dice.",
+                smallStr: "Small Str.", smallStr_rule: "Seq of 4. Score 15 or 30.",
+                largeStr: "Large Str.", largeStr_rule: "Seq of 5. Score 20 or 40.",
+                fullHouse: "Full House", fullHouse_rule: "3 of one + 2 of another.",
+                chance: "Chance", chance_rule: "Sum of all 5 dice.",
+                yatzy_cat: "Yatzy", yatzy_rule: "All 5 same. 50 or 0.",
+                total: "TOTAL"
+            },
+            fi: {
+                yatzy: "Yatzy",
+                enter_name: "Anna pelaajan nimi",
+                add_player: "+ Lisää pelaaja",
+                share: "🔗 Jaa",
+                finish: "🏆 Lopeta",
+                room_id: "Huoneen tunnus:",
+                loading: "Ladataan...",
+                category: "Kategoria",
+                history: "📜 Historia",
+                system_log: "Järjestelmäloki:",
+                rule_title: "Sääntö",
+                got_it: "Selvä",
+                room_locked: "🔒 Huone lukittu",
+                enter_pin_msg: "Anna PIN muokataksesi pisteitä.",
+                enter_pin_ph: "Anna PIN",
+                unlock: "Avaa",
+                view_only: "Vain katselu",
+                set_pin_title: "🔐 Aseta huoneen PIN",
+                protect_msg: "Suojaa tulostaulu?",
+                create_pin_ph: "Luo 4-numeroinen PIN",
+                set_lock: "Lukitse",
+                remove_lock: "Poista lukitus",
+                cancel: "Peruuta",
+                link_copied: "Linkki kopioitu!",
+                no_players: "Ei pelaajia",
+                finish_confirm: "Lopeta peli?\nVoittaja: {winner} ({score})",
+                winner_alert: "🏆 VOITTAJA: {winner} 🏆",
+                positive_only: "Vain positiiviset",
+                max_is: "Maksimi on {max}",
+                val_50_or_0: "50 tai 0",
+                min_4_digits: "Vähintään 4 numeroa",
+                unlocked: "Avattu!",
+                incorrect_pin: "Väärä PIN",
+                ones: "Ykköset", ones_rule: "Ykkösten summa. Max 5.",
+                twos: "Kakkoset", twos_rule: "Kakkosten summa. Max 10.",
+                threes: "Kolmoset", threes_rule: "Kolmosten summa. Max 15.",
+                fours: "Neloset", fours_rule: "Nelosten summa. Max 20.",
+                fives: "Viitoset", fives_rule: "Viitosten summa. Max 25.",
+                sixes: "Kuutoset", sixes_rule: "Kuutosten summa. Max 30.",
+                sum: "Summa",
+                bonus: "Bonus", bonus_rule: "Jos summa ≥ 63, 50 pistettä.",
+                pair: "Yksi pari", pair_rule: "Kahden saman silmäluvun summa.",
+                twoPair: "Kaksi paria", twoPair_rule: "Kahden eri parin summa.",
+                threeKind: "Kolmoisluku", threeKind_rule: "Kolmen saman silmäluvun summa.",
+                fourKind: "Neloisluku", fourKind_rule: "Neljän saman silmäluvun summa.",
+                smallStr: "Pieni suora", smallStr_rule: "4 peräkkäistä. 15 tai 30.",
+                largeStr: "Iso suora", largeStr_rule: "5 peräkkäistä. 20 tai 40.",
+                fullHouse: "Täyskäsi", fullHouse_rule: "3 samaa + 2 samaa.",
+                chance: "Sattuma", chance_rule: "Kaikkien 5 nopan summa.",
+                yatzy_cat: "Yatzy", yatzy_rule: "Kaikki 5 samaa. 50 tai 0.",
+                total: "YHTEENSÄ"
+            }
+        };
+
+        let currentLang = 'en';
+
+        function t(key, params={}) {
+            let str = TRANSLATIONS[currentLang][key] || key;
+            for (const [k, v] of Object.entries(params)) {
+                str = str.replace(`{${k}}`, v);
+            }
+            return str;
+        }
+
+        function updateLanguage() {
+            document.getElementById('appTitle').textContent = t('yatzy');
+            document.getElementById('playerName').placeholder = t('enter_name');
+            document.querySelector('button[onclick="addPlayer()"]').innerText = t('add_player');
+            document.querySelector('button[onclick="copyLink()"]').innerText = t('share');
+            document.querySelector('button[onclick="archiveAndReset()"]').innerText = t('finish');
+
+            const roomInfo = document.querySelector('.room-info');
+            roomInfo.childNodes[0].textContent = t('room_id') + " ";
+
+            const tableHeader = document.querySelector('#scoreTable th.category-col');
+            if (tableHeader) tableHeader.innerText = t('category');
+
+            document.querySelector('.history-section h3').innerText = t('history');
+            document.getElementById('debug-console').childNodes[0].textContent = t('system_log') + "\n";
+
+            document.getElementById('ruleTitle').innerText = t('rule_title');
+            document.querySelector('#ruleModal button').innerText = t('got_it');
+
+            document.querySelector('#pinModal h3').innerText = t('room_locked');
+            document.querySelector('#pinModal p').innerText = t('enter_pin_msg');
+            document.getElementById('pinInput').placeholder = t('enter_pin_ph');
+            document.querySelector('#pinModal button[onclick="verifyPin()"]').innerText = t('unlock');
+            document.querySelector('#pinModal button.secondary').innerText = t('view_only');
+
+            document.querySelector('#setPinModal h3').innerText = t('set_pin_title');
+            document.querySelector('#setPinModal p').innerText = t('protect_msg');
+            document.getElementById('newPinInput').placeholder = t('create_pin_ph');
+            document.querySelector('#setPinModal button[onclick="setRoomPin()"]').innerText = t('set_lock');
+            document.querySelector('#setPinModal button[onclick="removeRoomPin()"]').innerText = t('remove_lock');
+            document.querySelectorAll('#setPinModal button.secondary')[1].innerText = t('cancel');
+
+            document.getElementById('langBtn').innerText = currentLang === 'en' ? '🇫🇮' : '🇬🇧';
+            renderTable();
+        }
+
+        window.toggleLanguage = function() {
+            currentLang = currentLang === 'en' ? 'fi' : 'en';
+            updateLanguage();
+        };
 
         // --- LOGIC ---
         const RULES={ones:5,twos:10,threes:15,fours:20,fives:25,sixes:30,pair:12,twoPair:22,threeKind:30,fourKind:30,smallStr:30,largeStr:40,fullHouse:28,chance:30,yatzy:50};
         const CATEGORIES=[
-            {id:'ones',label:'Ones',rule:'Sum of ones. Max 5.'},
-            {id:'twos',label:'Twos',rule:'Sum of twos. Max 10.'},
-            {id:'threes',label:'Threes',rule:'Sum of threes. Max 15.'},
-            {id:'fours',label:'Fours',rule:'Sum of fours. Max 20.'},
-            {id:'fives',label:'Fives',rule:'Sum of fives. Max 25.'},
-            {id:'sixes',label:'Sixes',rule:'Sum of sixes. Max 30.'},
-            {id:'sum',label:'Sum',type:'calc'},
-            {id:'bonus',label:'Bonus',type:'calc',rule:'If Sum ≥ 63, score 50.'},
-            {id:'pair',label:'One Pair',rule:'Sum of two same dice.'},
-            {id:'twoPair',label:'Two Pairs',rule:'Sum of two different pairs.'},
-            {id:'threeKind',label:'3 of a Kind',rule:'Sum of three same dice.'},
-            {id:'fourKind',label:'4 of a Kind',rule:'Sum of four same dice.'},
-            {id:'smallStr',label:'Small Str.',rule:'Seq of 4. Score 15 or 30.'},
-            {id:'largeStr',label:'Large Str.',rule:'Seq of 5. Score 20 or 40.'},
-            {id:'fullHouse',label:'Full House',rule:'3 of one + 2 of another.'},
-            {id:'chance',label:'Chance',rule:'Sum of all 5 dice.'},
-            {id:'yatzy',label:'Yatzy',rule:'All 5 same. 50 or 0.'},
-            {id:'total',label:'TOTAL',type:'calc'}
+            {id:'ones'}, {id:'twos'}, {id:'threes'}, {id:'fours'}, {id:'fives'}, {id:'sixes'},
+            {id:'sum', type:'calc'},
+            {id:'bonus', type:'calc'},
+            {id:'pair'}, {id:'twoPair'}, {id:'threeKind'}, {id:'fourKind'},
+            {id:'smallStr'}, {id:'largeStr'}, {id:'fullHouse'}, {id:'chance'}, {id:'yatzy'},
+            {id:'total', type:'calc'}
         ];
 
         // Global functions for buttons
@@ -263,9 +440,9 @@
             const num = Number(val);
             let err = "";
             if(val!=='') {
-                if(isNaN(num)||num<0) err="Positive only";
-                else if(RULES[cat] && num>RULES[cat]) err=`Max is ${RULES[cat]}`;
-                else if(cat==='yatzy' && num!==0 && num!==50) err="50 or 0";
+                if(isNaN(num)||num<0) err=t('positive_only');
+                else if(RULES[cat] && num>RULES[cat]) err=t('max_is', {max: RULES[cat]});
+                else if(cat==='yatzy' && num!==0 && num!==50) err=t('val_50_or_0');
             }
             if(err) {
                 Sound.error(); alert(err); 
@@ -273,7 +450,12 @@
                 if(el) { el.classList.add('invalid-shake'); setTimeout(()=>el.classList.remove('invalid-shake'),500); }
                 renderTable(); return;
             }
-            if(val!=='') { (cat==='yatzy'&&num===50)?(Sound.yatzy(),startConfetti()):Sound.score(); }
+            // Removed local animation triggers to rely on DB listeners (all users see it)
+            if(val!=='') {
+                if (!(cat === 'yatzy' && num === 50)) {
+                    Sound.score();
+                }
+            }
             
             db.ref(`games/${gameId}/current/players/${pid}/scores/${cat}`).set(val===''?null:num);
         };
@@ -281,7 +463,7 @@
         window.archiveAndReset = function() {
             if(!checkAuth()) return;
             const pList = playerData ? Object.values(playerData) : [];
-            if(!pList.length) return alert("No players");
+            if(!pList.length) return alert(t('no_players'));
             
             let winner="None", max=-1, results=[];
             pList.forEach(p => {
@@ -290,15 +472,14 @@
                 if(s>max) { max=s; winner=p.name; }
             });
 
-            if(!confirm(`Finish game?\nWinner: ${winner} (${max})`)) return;
-            try{Sound.fanfare();startConfetti();}catch(e){}
+            if(!confirm(t('finish_confirm', {winner: winner, score: max}))) return;
+            // Removed local animation/alert. DB listener will trigger it.
             
             db.ref(`games/${gameId}/history`).push({ date: new Date().toISOString(), winner: winner, results: results });
             
             const updates={};
             Object.keys(playerData).forEach(pid => updates[`players/${pid}/scores`] = null);
             db.ref(`games/${gameId}/current`).update(updates);
-            setTimeout(()=>alert(`🏆 WINNER: ${winner} 🏆`), 300);
         };
 
         // --- RENDER & HELPERS ---
@@ -322,10 +503,15 @@
 
                 const tdLabel = document.createElement('td');
                 tdLabel.className='category-col';
-                tdLabel.innerHTML=`<span>${cat.label}</span>`;
-                if(cat.rule) {
+                // Use translation
+                const catKey = cat.id === 'yatzy' ? 'yatzy_cat' : cat.id; // handle key collision with app title
+                const label = t(catKey);
+                const rule = t(catKey + '_rule');
+
+                tdLabel.innerHTML=`<span>${label}</span>`;
+                if(rule && rule !== catKey + '_rule') { // if translation exists
                     const i = document.createElement('span'); i.className='help-icon'; i.innerText='?';
-                    i.onclick=()=>window.showRule(cat.label, cat.rule); tdLabel.appendChild(i);
+                    i.onclick=()=>window.showRule(label, rule); tdLabel.appendChild(i);
                 }
                 tr.appendChild(tdLabel);
 
@@ -398,15 +584,12 @@
 
         window.copyLink = function() {
             const url = window.location.href;
-            navigator.clipboard.writeText(url).then(() => alert("Link copied!"));
+            navigator.clipboard.writeText(url).then(() => alert(t('link_copied')));
         };
 
         window.toggleLockModal = function() {
             if (roomPin) {
-                // Room is locked, show unlock modal if not authorized
                  if (isAuthorized) {
-                     // Already authorized, maybe offer to remove pin? Or just show settings?
-                     // For simplicity, let's show setPinModal to allow removing/changing
                      document.getElementById('newPinInput').value = '';
                      document.getElementById('setPinModal').style.display = 'flex';
                  } else {
@@ -414,7 +597,6 @@
                      document.getElementById('pinModal').style.display = 'flex';
                  }
             } else {
-                // Room is not locked, show set pin modal
                 document.getElementById('newPinInput').value = '';
                 document.getElementById('setPinModal').style.display = 'flex';
             }
@@ -425,27 +607,26 @@
             if (input === roomPin) {
                 isAuthorized = true;
                 document.getElementById('pinModal').style.display = 'none';
-                alert("Unlocked!");
+                alert(t('unlocked'));
             } else {
-                alert("Incorrect PIN");
+                alert(t('incorrect_pin'));
                 Sound.error();
             }
         };
 
         window.setRoomPin = function() {
             const pin = document.getElementById('newPinInput').value;
-            if (pin.length < 4) { alert("Min 4 digits"); return; }
+            if (pin.length < 4) { alert(t('min_4_digits')); return; }
             db.ref(`games/${gameId}/settings/pin`).set(pin);
             document.getElementById('setPinModal').style.display = 'none';
-            isAuthorized = true; // Setter is authorized
+            isAuthorized = true;
         };
 
         window.removeRoomPin = function() {
              if (!roomPin) return;
-             // Should verify current pin before removing? Assuming authorized.
              db.ref(`games/${gameId}/settings/pin`).remove();
              document.getElementById('setPinModal').style.display = 'none';
-             isAuthorized = false; // Reset auth state?
+             isAuthorized = false;
         };
 
         function checkAuth() {
@@ -481,7 +662,6 @@
         }
 
         function startConfetti() {
-            // Simple confetti implementation or placeholder
             const canvas = document.getElementById('confetti');
             const ctx = canvas.getContext('2d');
             canvas.width = window.innerWidth;
@@ -500,7 +680,7 @@
 
             let frame = 0;
             function loop() {
-                if (frame++ > 200) { ctx.clearRect(0,0,canvas.width,canvas.height); return; } // stop after some time
+                if (frame++ > 200) { ctx.clearRect(0,0,canvas.width,canvas.height); return; }
                 ctx.clearRect(0,0,canvas.width,canvas.height);
                 particles.forEach(p => {
                     p.y += p.velY;
