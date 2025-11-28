@@ -362,8 +362,157 @@
             return 0;
         }
         function calculateTotal(s){return calculateField('total',s);}
+
         function renderHistory(h){
             const l=document.getElementById('historyList'); l.innerHTML=''; if(!h)return;
             Object.values(h).reverse().forEach(g=>{
                 const d=document.createElement('div'); d.className='history-card';
-                d.innerHTML=`<span>🏆 <b>${g.winner}</b></s
+                d.innerHTML=`<span>🏆 <b>${g.winner}</b></span> <span>${g.results.find(r=>r.name===g.winner)?.score} pts</span> <span style="font-size:0.8em;color:#888">${new Date(g.date).toLocaleDateString()}</span>`;
+                l.appendChild(d);
+            });
+        }
+
+        // --- MISSING FUNCTIONS RECONSTRUCTED ---
+
+        window.showRule = function(title, text) {
+             document.getElementById('ruleTitle').innerText = title;
+             document.getElementById('ruleText').innerText = text;
+             document.getElementById('ruleModal').style.display = 'flex';
+        };
+
+        window.toggleSound = function() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundBtn').innerText = soundEnabled ? '🔊' : '🔇';
+        };
+
+        window.toggleTheme = function() {
+            const body = document.body;
+            if (body.getAttribute('data-theme') === 'light') {
+                body.removeAttribute('data-theme');
+                document.getElementById('themeBtn').innerText = '☀️';
+            } else {
+                body.setAttribute('data-theme', 'light');
+                document.getElementById('themeBtn').innerText = '🌙';
+            }
+        };
+
+        window.copyLink = function() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => alert("Link copied!"));
+        };
+
+        window.toggleLockModal = function() {
+            if (roomPin) {
+                // Room is locked, show unlock modal if not authorized
+                 if (isAuthorized) {
+                     // Already authorized, maybe offer to remove pin? Or just show settings?
+                     // For simplicity, let's show setPinModal to allow removing/changing
+                     document.getElementById('newPinInput').value = '';
+                     document.getElementById('setPinModal').style.display = 'flex';
+                 } else {
+                     document.getElementById('pinInput').value = '';
+                     document.getElementById('pinModal').style.display = 'flex';
+                 }
+            } else {
+                // Room is not locked, show set pin modal
+                document.getElementById('newPinInput').value = '';
+                document.getElementById('setPinModal').style.display = 'flex';
+            }
+        };
+
+        window.verifyPin = function() {
+            const input = document.getElementById('pinInput').value;
+            if (input === roomPin) {
+                isAuthorized = true;
+                document.getElementById('pinModal').style.display = 'none';
+                alert("Unlocked!");
+            } else {
+                alert("Incorrect PIN");
+                Sound.error();
+            }
+        };
+
+        window.setRoomPin = function() {
+            const pin = document.getElementById('newPinInput').value;
+            if (pin.length < 4) { alert("Min 4 digits"); return; }
+            db.ref(`games/${gameId}/settings/pin`).set(pin);
+            document.getElementById('setPinModal').style.display = 'none';
+            isAuthorized = true; // Setter is authorized
+        };
+
+        window.removeRoomPin = function() {
+             if (!roomPin) return;
+             // Should verify current pin before removing? Assuming authorized.
+             db.ref(`games/${gameId}/settings/pin`).remove();
+             document.getElementById('setPinModal').style.display = 'none';
+             isAuthorized = false; // Reset auth state?
+        };
+
+        function checkAuth() {
+            if (!roomPin) return true;
+            if (isAuthorized) return true;
+            document.getElementById('pinInput').value = '';
+            document.getElementById('pinModal').style.display = 'flex';
+            return false;
+        }
+
+        const Sound = {
+            tap: () => playTone(800, 'square'),
+            error: () => playTone(150, 'sawtooth', 0.3),
+            yatzy: () => { playTone(600,'sine',0.1); setTimeout(()=>playTone(800,'sine',0.1), 100); },
+            score: () => playTone(1000, 'sine'),
+            fanfare: () => { playTone(500); setTimeout(()=>playTone(700), 200); }
+        };
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type='sine', dur=0.1) {
+            if(!soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + dur);
+        }
+
+        function startConfetti() {
+            // Simple confetti implementation or placeholder
+            const canvas = document.getElementById('confetti');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            let particles = [];
+            for(let i=0; i<100; i++) {
+                particles.push({
+                    x: Math.random()*canvas.width,
+                    y: Math.random()*canvas.height - canvas.height,
+                    color: `hsl(${Math.random()*360}, 100%, 50%)`,
+                    velY: Math.random()*5 + 2,
+                    velX: Math.random()*2 - 1
+                });
+            }
+
+            let frame = 0;
+            function loop() {
+                if (frame++ > 200) { ctx.clearRect(0,0,canvas.width,canvas.height); return; } // stop after some time
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                particles.forEach(p => {
+                    p.y += p.velY;
+                    p.x += p.velX;
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, 5, 5);
+                });
+                requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+    </script>
+</body>
+</html>
