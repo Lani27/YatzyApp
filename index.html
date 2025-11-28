@@ -75,9 +75,43 @@
         }
         .log-err { color: #ff4444; }
         .log-ok { color: #44ff44; }
+
+        /* WINNER OVERLAY */
+        #winnerOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 10000;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px); animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .winner-content { text-align: center; color: white; animation: zoomBounce 1s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
+        @keyframes zoomBounce { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+        .winner-trophy { font-size: 8rem; margin-bottom: 20px; filter: drop-shadow(0 0 20px gold); animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-20px); } 100% { transform: translateY(0px); } }
+
+        .winner-title { font-size: 2rem; margin: 0; text-transform: uppercase; letter-spacing: 5px; color: #ffd700; text-shadow: 0 0 10px #ff8c00; }
+        .winner-name { font-size: 4rem; font-weight: bold; margin: 10px 0; background: linear-gradient(to right, #ffd700, #ff8c00, #ffd700); -webkit-background-clip: text; color: transparent; background-size: 200% auto; animation: shine 3s linear infinite; }
+        @keyframes shine { to { background-position: 200% center; } }
+
+        .winner-score { font-size: 1.5rem; color: #fff; opacity: 0.8; }
+        .winner-close-btn { margin-top: 40px; background: transparent; border: 2px solid white; color: white; padding: 10px 30px; font-size: 1.2rem; border-radius: 50px; cursor: pointer; transition: all 0.3s; }
+        .winner-close-btn:hover { background: white; color: black; transform: scale(1.1); }
+
     </style>
 </head>
 <body>
+
+    <div id="winnerOverlay">
+        <div class="winner-content">
+            <div class="winner-trophy">🏆</div>
+            <h2 class="winner-title">Winner</h2>
+            <div class="winner-name" id="winnerNameDisplay">Player</div>
+            <div class="winner-score" id="winnerScoreDisplay">Score: 100</div>
+            <button class="winner-close-btn" onclick="closeWinnerOverlay()">Close</button>
+        </div>
+    </div>
 
     <canvas id="confetti"></canvas>
 
@@ -245,9 +279,10 @@
                  const finishedTime = new Date(val.date).getTime();
                  // If game finished within last 30 seconds, animate
                  if (Date.now() - finishedTime < 30000) {
-                     Sound.fanfare();
-                     startConfetti();
-                     setTimeout(()=>alert(t('winner_alert', {winner: val.winner})), 300);
+                     // Check if we already showed this one (optional optimization, but good for UX)
+                     // For now, just show it.
+                     const winningScore = val.results.find(r => r.name === val.winner)?.score || 0;
+                     showWinnerOverlay(val.winner, winningScore);
                  }
             });
             historyRef.on('value', (snap) => renderHistory(snap.val()));
@@ -642,7 +677,25 @@
             error: () => playTone(150, 'sawtooth', 0.3),
             yatzy: () => { playTone(600,'sine',0.1); setTimeout(()=>playTone(800,'sine',0.1), 100); },
             score: () => playTone(1000, 'sine'),
-            fanfare: () => { playTone(500); setTimeout(()=>playTone(700), 200); }
+            fanfare: () => { playTone(500); setTimeout(()=>playTone(700), 200); }, // Legacy fallback
+            victory: () => {
+                // Majestic Victory Fanfare (Final Fantasy style intro approx)
+                const now = audioCtx.currentTime;
+                // C major fanfare: C4, C4, C4, C4, G#3, Bb3, C4, Bb3, C4
+                // Let's do a simple triumphant arpeggio sequence
+                const tune = [
+                    {f:523.25, d:0.15, t:0},    // C5
+                    {f:523.25, d:0.15, t:0.15}, // C5
+                    {f:523.25, d:0.15, t:0.30}, // C5
+                    {f:659.25, d:0.40, t:0.45}, // E5
+                    {f:783.99, d:0.40, t:0.85}, // G5
+                    {f:1046.50, d:1.5, t:1.25}  // C6
+                ];
+                tune.forEach(n => {
+                    setTimeout(() => playTone(n.f, 'triangle', n.d), n.t * 1000);
+                    setTimeout(() => playTone(n.f * 0.5, 'sawtooth', n.d), n.t * 1000); // Add bass/harmony octave down
+                });
+            }
         };
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -653,44 +706,112 @@
             const gain = audioCtx.createGain();
             osc.type = type;
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+            // Envelope
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start();
             osc.stop(audioCtx.currentTime + dur);
         }
 
-        function startConfetti() {
+        // --- NEW CONFETTI & WINNER OVERLAY ---
+        let confettiInterval = null;
+
+        function showWinnerOverlay(winnerName, score) {
+            document.getElementById('winnerNameDisplay').innerText = winnerName;
+            document.getElementById('winnerScoreDisplay').innerText = t('total') + ": " + score;
+            document.getElementById('winnerOverlay').style.display = 'flex';
+            Sound.victory();
+            startConfetti(true); // Continuous confetti
+        }
+
+        window.closeWinnerOverlay = function() {
+            document.getElementById('winnerOverlay').style.display = 'none';
+            stopConfetti();
+        };
+
+        function startConfetti(continuous = false) {
             const canvas = document.getElementById('confetti');
             const ctx = canvas.getContext('2d');
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
 
             let particles = [];
-            for(let i=0; i<100; i++) {
-                particles.push({
-                    x: Math.random()*canvas.width,
-                    y: Math.random()*canvas.height - canvas.height,
-                    color: `hsl(${Math.random()*360}, 100%, 50%)`,
-                    velY: Math.random()*5 + 2,
-                    velX: Math.random()*2 - 1
-                });
+            const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
+
+            function createParticle() {
+                return {
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 10 + 5,
+                    velY: Math.random() * 3 + 2,
+                    velX: Math.random() * 4 - 2,
+                    rotation: Math.random() * 360,
+                    rotationSpeed: Math.random() * 10 - 5
+                };
             }
+
+            // Initial burst
+            for(let i=0; i<150; i++) particles.push(createParticle());
 
             let frame = 0;
             function loop() {
-                if (frame++ > 200) { ctx.clearRect(0,0,canvas.width,canvas.height); return; }
+                if (!continuous && frame++ > 300) {
+                    ctx.clearRect(0,0,canvas.width,canvas.height);
+                    return;
+                }
+
+                // If stopped externally
+                if (continuous && document.getElementById('winnerOverlay').style.display === 'none') {
+                    ctx.clearRect(0,0,canvas.width,canvas.height);
+                    return;
+                }
+
                 ctx.clearRect(0,0,canvas.width,canvas.height);
-                particles.forEach(p => {
+
+                // Add new particles if continuous
+                if (continuous && particles.length < 150) {
+                     particles.push(createParticle());
+                }
+
+                particles.forEach((p, index) => {
                     p.y += p.velY;
                     p.x += p.velX;
+                    p.rotation += p.rotationSpeed;
+
+                    if (p.y > canvas.height) {
+                        if (continuous) {
+                            p.y = -20;
+                            p.x = Math.random() * canvas.width;
+                        } else {
+                            particles.splice(index, 1);
+                        }
+                    }
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rotation * Math.PI / 180);
                     ctx.fillStyle = p.color;
-                    ctx.fillRect(p.x, p.y, 5, 5);
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
                 });
-                requestAnimationFrame(loop);
+
+                if (particles.length > 0) {
+                    requestAnimationFrame(loop);
+                }
             }
             loop();
+        }
+
+        function stopConfetti() {
+             // Logic handled in loop check
+             const canvas = document.getElementById('confetti');
+             const ctx = canvas.getContext('2d');
+             ctx.clearRect(0,0,canvas.width,canvas.height);
         }
 
     </script>
